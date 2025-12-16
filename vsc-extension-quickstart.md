@@ -1,8 +1,10 @@
-# code-translate
+# Translate Dict
+
+based on [Code Translate](https://github.com/w88975/code-translate-vscode),
 
 ## 简介
 
-vscode 滑词 & 悬浮 翻译插件
+vscode 滑词 & 悬浮 翻译插件 (Translate Dict)
 
 ## 预览
 

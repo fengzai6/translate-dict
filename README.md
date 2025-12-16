@@ -1,4 +1,4 @@
-# Code Translate for VS Code
+# Translate Dict for VS Code
 
 [![Version](https://img.shields.io/visual-studio-marketplace/v/fengzai6.code-translate?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fengzai6.code-translate)
 ![Installs](https://img.shields.io/visual-studio-marketplace/i/fengzai6.code-translate?style=flat-square)
@@ -9,7 +9,9 @@
 
 ## 简介
 
-Code Translate 是一款纯粹的滑词翻译软件
+## 简介
+
+Translate Dict 是一款基于 Code Translate 的纯粹滑词翻译软件。
 
 1. 无侵入式的显示翻译结果: 与 VS Code 代码分析完美结合
 
@@ -17,7 +19,7 @@ Code Translate 是一款纯粹的滑词翻译软件
 
 3. 丰富的本地词库: 包含 76 万+离线单词 (约 63.93 MB), 支持各种生僻单词, 单词来源：[ECDICT](https://github.com/skywind3000/ECDICT)
 
-4. 基于丰富的本地词库: Code Translate 拥有超快的查询速度, 每个单词在基本在 10ms 内可查询完毕
+4. 基于丰富的本地词库: Translate Dict 拥有超快的查询速度, 每个单词在基本在 10ms 内可查询完毕
 
 5. 多端支持: VS Code 桌面版 和 VS Code Online 版本, 插件均可支持
 

@@ -1,7 +1,7 @@
 {
-  "name": "code-translate",
-  "displayName": "Code Translate",
-  "description": "A pure vscode translation plug-in; 一款纯粹的 vscode 滑词翻译插件",
+  "name": "translate-dict",
+  "displayName": "Translate Dict",
+  "description": "A pure vscode translation plug-in based on Code Translate; 一款纯粹的 vscode 滑词翻译插件，基于 Code Translate",
   "keywords": [
     "翻译",
     "滑词翻译",

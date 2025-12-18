@@ -32,7 +32,43 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "translateDict.enableTranslation",
+        "title": "启用翻译",
+        "category": "Translate Dict"
+      },
+      {
+        "command": "translateDict.disableTranslation",
+        "title": "禁用翻译",
+        "category": "Translate Dict"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "translateDict.submenu",
+          "group": "z_commands",
+          "when": "editorTextFocus"
+        }
+      ],
+      "translateDict.submenu": [
+        {
+          "command": "translateDict.enableTranslation",
+          "group": "translation"
+        },
+        {
+          "command": "translateDict.disableTranslation",
+          "group": "translation"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "translateDict.submenu",
+        "label": "Translate Dict"
+      }
+    ],
     "configuration": {
       "title": "Translate Dict",
       "properties": {

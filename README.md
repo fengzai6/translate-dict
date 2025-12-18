@@ -24,11 +24,34 @@ Translate Dict 是一款基于 Code Translate 的纯粹滑词翻译软件。
 
 ---
 
+## 功能特性
+
+### 文件过滤
+
+通过配置文件类型来控制翻译功能的作用范围：
+
+- `translateDict.includeFileExtensions`: 启用翻译的文件后缀列表（为空则对所有文件生效）
+  - 示例: `["js", "ts", "py"]`
+- `translateDict.excludeFileExtensions`: 禁用翻译的文件后缀列表
+  - 示例: `["md", "txt", "json"]`
+
+### 全局开关
+
+通过右键菜单快速启用/禁用翻译功能：
+
+- 在编辑器中**右键** → **"Translate Dict"** → 选择 **"启用"** 或 **"禁用"**
+- 或使用**命令面板** (Ctrl+Shift+P / Cmd+Shift+P)，搜索 **"Translate Dict"** 相关命令
+
+这样可以在不需要翻译时快速关闭，避免干扰正常工作。
+
+---
+
 ## TODO
 
-- [ ] 允许 ignore 文件 或者 include 文件
-- [ ] 允许选择触发条件 (右键菜单、鼠标悬停、框选、按键+悬停)
+- [x] 允许 ignore 文件 或者 include 文件
+- [x] 添加全局开关快速启用/禁用翻译
 - [ ] 中译英
+- [ ] 尝试拆分类似 audioinput 这种组合词
 - [ ] 自定义跳转翻译平台
 
 ## 预览

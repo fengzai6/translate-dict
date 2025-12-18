@@ -1,10 +1,11 @@
+import * as vscode from "vscode";
 import { init } from "./index";
 
 /**
  * 插件激活时调用
  */
-export function activate(): void {
-  init();
+export function activate(context: vscode.ExtensionContext): void {
+  init(context);
 }
 
 /**

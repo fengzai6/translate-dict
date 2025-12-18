@@ -10,6 +10,9 @@ const MARKDOWN_LINE = `
 *****
 `;
 
+// 全局翻译开关状态
+let translationEnabled = true;
+
 /**
  * 生成 Markdown 格式的翻译结果
  * @param word 单词
@@ -39,12 +42,39 @@ ${translation.replace(
 /**
  * 初始化翻译插件
  */
-export function init(): void {
+export function init(context?: vscode.ExtensionContext): void {
+  // 注册翻译控制命令
+  if (context) {
+    // 注册启用翻译的命令
+    context.subscriptions.push(
+      vscode.commands.registerCommand("translateDict.enableTranslation", () => {
+        translationEnabled = true;
+        vscode.window.setStatusBarMessage("✅ 翻译功能已启用", 3000);
+      })
+    );
+
+    // 注册禁用翻译的命令
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "translateDict.disableTranslation",
+        () => {
+          translationEnabled = false;
+          vscode.window.setStatusBarMessage("❌ 翻译功能已禁用", 3000);
+        }
+      )
+    );
+  }
+
   vscode.languages.registerHoverProvider("*", {
     provideHover(
       document: vscode.TextDocument,
       position: vscode.Position
     ): vscode.Hover | undefined {
+      // 检查全局开关
+      if (!translationEnabled) {
+        return;
+      }
+
       // 获取配置
       const config = vscode.workspace.getConfiguration("translateDict");
       const includeFileExtensions = config.get<string[]>(

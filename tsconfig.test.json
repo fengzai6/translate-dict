@@ -6,5 +6,5 @@
     "module": "commonjs",
     "moduleResolution": "node"
   },
-  "include": ["test/**/*", "vite.config.ts"]
+  "include": ["test/**/*", "src/**/*.test.ts", "vitest.config.ts"]
 }

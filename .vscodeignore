@@ -13,6 +13,8 @@ tsconfig.json
 tsconfig.test.json
 rollup.config.mjs
 eslint.config.mjs
+vitest.config.ts
 scripts/
 test/
+assets/
 

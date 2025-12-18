@@ -22,12 +22,6 @@ Translate Dict 是一款基于 Code Translate 的纯粹滑词翻译软件。
 
 5. 多端支持: VS Code 桌面版 和 VS Code Online 版本, 插件均可支持
 
-# TODO：
-
-1. 完善 ts 迁移，思考 vite 的必要性，还是直接 rollup 即可
-2. 完善测试
-3. workflow
-
 ---
 
 ## 预览

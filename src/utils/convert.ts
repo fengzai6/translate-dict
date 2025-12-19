@@ -10,13 +10,14 @@ function genMarkdown(
   translation?: string,
   phonetic?: string
 ): string {
+  const encodedWord = encodeURIComponent(word);
   if (!translation && !phonetic) {
-    return `- [${word}](https://translate.google.com?text=${word}) :  
-本地词库暂无结果 , 查看 [Google翻译](https://translate.google.com?text=${word}) [百度翻译](https://fanyi.baidu.com/#en/zh/${word})`;
+    return `- [${word}](https://translate.google.com?text=${encodedWord}) :  
+本地词库暂无结果 , 查看 [Google翻译](https://translate.google.com?text=${encodedWord}) [百度翻译](https://fanyi.baidu.com/#en/zh/${encodedWord})`;
   }
 
   const phoneticText = phonetic ? `*/${phonetic}/*` : "";
-  return `- [${word}](https://translate.google.com?text=${word}) ${phoneticText}:  
+  return `- [${word}](https://translate.google.com?text=${encodedWord}) ${phoneticText}:  
 ${translation?.replace(/\\n/g, `  \n`)}`;
 }
 

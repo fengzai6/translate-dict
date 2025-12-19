@@ -32,7 +32,16 @@ function queryWord(word: string): DictResult {
 // 核心拆分逻辑
 // ============================================
 
+/**
+ * 智能拆分：优先保留词典中存在的完整词组
+ */
 function splitByCase(str: string): string[] {
+  // 先检查完整字符串是否在词典中（支持带连字符的词）
+  if (isWordInDict(str)) {
+    return [str];
+  }
+
+  // 按连字符、下划线、空格拆分
   const parts = str.split(/[-_\s]+/).filter(Boolean);
   const result: string[] = [];
 

@@ -73,19 +73,25 @@ export function init(context?: vscode.ExtensionContext): void {
       }
 
       const wordRange = document.getWordRangeAtPosition(position);
+
       if (!wordRange) {
         return;
       }
 
       let word = document.getText(wordRange);
+
       const selectText = vscode.window.activeTextEditor?.document.getText(
         vscode.window.activeTextEditor.selection
       );
 
-      // 如果有选中文本且当前单词包含选中文本，使用选中文本
-      if (selectText && word.includes(selectText)) {
+      // 如果有选中文本用选中文本
+      if (
+        selectText &&
+        (selectText.includes(word) || word.includes(selectText))
+      ) {
         word = selectText;
       }
+
       const originText = word.replace(/"/g, "");
       const wordsMarkdown = convertToMarkdown(word);
 

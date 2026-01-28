@@ -15,11 +15,11 @@
     "本地词典",
     "翻译"
   ],
-  "version": "1.2.2",
+  "version": "1.2.3",
   "publisher": "fengzai6",
   "repository": {
     "type": "git",
-    "url": "https://github.com/fengzai6/translate-dict-vscode.git"
+    "url": "https://github.com/fengzai6/translate-dict.git"
   },
   "icon": "icon.png",
   "engines": {
@@ -95,6 +95,32 @@
           "minimum": 1,
           "maximum": 50,
           "description": "中译英最大显示结果数量，默认为 10"
+        },
+        "translateDict.defaultTranslatePlatform": {
+          "type": "string",
+          "default": "google",
+          "enum": [
+            "google",
+            "baidu",
+            "deepl",
+            "bing",
+            "yandex",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Google翻译",
+            "百度翻译",
+            "DeepL翻译",
+            "必应翻译",
+            "Yandex翻译",
+            "自定义翻译平台"
+          ],
+          "description": "默认翻译平台，用于 Markdown 中单词的跳转链接"
+        },
+        "translateDict.customTranslateUrl": {
+          "type": "string",
+          "default": "https://fanyi.baidu.com/#en/zh/{word}",
+          "description": "自定义翻译平台URL，使用 {word} 作为单词占位符，例如: https://fanyi.baidu.com/#en/zh/{word}"
         }
       }
     }

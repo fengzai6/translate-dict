@@ -1,8 +1,18 @@
 # Change Log
 
-All notable changes to the "code-translate" extension will be documented in this file.
+All notable changes to the "translate-dict" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+
+## [1.2.3] - 2026-01-28
+
+### 新功能
+
+- feat: 自定义外部翻译平台跳转功能
+  - 支持选择默认翻译平台：Google翻译、百度翻译、DeepL翻译、必应翻译、Yandex翻译
+  - 支持自定义翻译平台URL，使用 `{word}` 作为单词占位符
+  - 当本地词库无结果时，自动显示所有翻译平台的跳转链接
+  - 中译英无结果时也会显示翻译平台链接
 
 ## [1.2.1] - 2026-01-09
 

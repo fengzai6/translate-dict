@@ -1,20 +1,21 @@
 {
   "name": "translate-dict",
   "displayName": "Translate Dict",
-  "description": "A pure vscode translation plug-in based on Code Translate; 一款纯粹的 vscode 滑词翻译插件，基于 Code Translate",
+  "description": "A pure, high-performance, and non-intrusive VS Code translation plugin based on ECDICT local dictionary. 一款纯粹、极速、无侵入的 VS Code 本地滑词翻译插件。",
   "keywords": [
-    "翻译",
-    "滑词翻译",
     "translate",
     "translation",
+    "dictionary",
+    "ecdict",
+    "hover-translate",
+    "local-dictionary",
+    "offline-translation",
     "code-translation",
-    "code translation",
-    "code-translate",
-    "code translate",
-    "translate-dict",
-    "translate dict"
+    "滑词翻译",
+    "本地词典",
+    "翻译"
   ],
-  "version": "1.2.1",
+  "version": "1.2.2",
   "publisher": "fengzai6",
   "repository": {
     "type": "git",
@@ -138,6 +139,5 @@
     "typescript": "^5.9.3",
     "vitest": "^4.0.16",
     "vscode-test": "^1.3.0"
-  },
-  "dependencies": {}
+  }
 }

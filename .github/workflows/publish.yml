@@ -32,9 +32,14 @@ jobs:
       - name: Package extension
         run: npx @vscode/vsce package --allow-star-activation
 
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
           files: "*.vsix"
           generate_release_notes: true
         env:

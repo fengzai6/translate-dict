@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -29,7 +30,7 @@ jobs:
         run: yarn rollup -c
 
       - name: Package extension
-        run: yarn package
+        run: npx @vscode/vsce package --allow-star-activation
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

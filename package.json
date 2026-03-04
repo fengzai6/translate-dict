@@ -43,6 +43,23 @@
         "command": "translateDict.disableTranslation",
         "title": "禁用翻译",
         "category": "Translate Dict"
+      },
+      {
+        "command": "translateDict.toggleTranslationMode",
+        "title": "切换翻译触发模式",
+        "category": "Translate Dict"
+      },
+      {
+        "command": "translateDict.translateSelection",
+        "title": "翻译选中文本",
+        "category": "Translate Dict"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "translateDict.translateSelection",
+        "key": "alt+t",
+        "when": "editorTextFocus"
       }
     ],
     "menus": {
@@ -60,6 +77,10 @@
         },
         {
           "command": "translateDict.disableTranslation",
+          "group": "translation"
+        },
+        {
+          "command": "translateDict.toggleTranslationMode",
           "group": "translation"
         }
       ]
@@ -121,6 +142,19 @@
           "type": "string",
           "default": "https://fanyi.baidu.com/#en/zh/{word}",
           "description": "自定义翻译平台URL，使用 {word} 作为单词占位符，例如: https://fanyi.baidu.com/#en/zh/{word}"
+        },
+        "translateDict.translationMode": {
+          "type": "string",
+          "default": "hover",
+          "enum": [
+            "hover",
+            "shortcut"
+          ],
+          "enumDescriptions": [
+            "悬浮即翻译：鼠标悬停在单词上自动显示翻译",
+            "快捷键翻译：选中文本后按 Alt+T 触发翻译"
+          ],
+          "description": "翻译触发模式"
         }
       }
     }

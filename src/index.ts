@@ -6,6 +6,19 @@ import { convertToMarkdown } from "./utils/convert";
 // 全局翻译开关状态
 let translationEnabled = true;
 
+// 快捷键触发标志（shortcut 模式下用于控制 hover provider）
+let shortcutTriggered = false;
+
+type TranslationMode = "hover" | "shortcut";
+
+/**
+ * 读取当前翻译模式配置
+ */
+function getTranslationMode(): TranslationMode {
+  const config = vscode.workspace.getConfiguration("translateDict");
+  return config.get<TranslationMode>("translationMode", "hover");
+}
+
 /**
  * 初始化翻译插件
  */
@@ -30,6 +43,58 @@ export function init(context?: vscode.ExtensionContext): void {
         }
       )
     );
+
+    // 注册切换翻译模式的命令
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "translateDict.toggleTranslationMode",
+        async () => {
+          const config = vscode.workspace.getConfiguration("translateDict");
+          const currentMode = config.get<TranslationMode>(
+            "translationMode",
+            "hover"
+          );
+          const nextMode: TranslationMode =
+            currentMode === "hover" ? "shortcut" : "hover";
+
+          await config.update(
+            "translationMode",
+            nextMode,
+            vscode.ConfigurationTarget.Global
+          );
+
+          const modeLabel =
+            nextMode === "hover"
+              ? "悬浮即翻译（hover）"
+              : "快捷键翻译（Alt+T）";
+          vscode.window.setStatusBarMessage(
+            `🔄 翻译模式已切换为：${modeLabel}`,
+            3000
+          );
+        }
+      )
+    );
+
+    // 注册快捷键翻译命令（shortcut 模式下 Alt+T 触发）
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        "translateDict.translateSelection",
+        async () => {
+          if (!translationEnabled) {
+            return;
+          }
+
+          const mode = getTranslationMode();
+          if (mode !== "shortcut") {
+            return;
+          }
+
+          shortcutTriggered = true;
+          await vscode.commands.executeCommand("editor.action.showHover");
+          shortcutTriggered = false;
+        }
+      )
+    );
   }
 
   vscode.languages.registerHoverProvider("*", {
@@ -39,6 +104,12 @@ export function init(context?: vscode.ExtensionContext): void {
     ): vscode.Hover | undefined {
       // 检查全局开关
       if (!translationEnabled) {
+        return;
+      }
+
+      // 检查翻译模式：shortcut 模式下只有快捷键触发才响应
+      const mode = getTranslationMode();
+      if (mode === "shortcut" && !shortcutTriggered) {
         return;
       }
 

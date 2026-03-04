@@ -12,6 +12,9 @@ export default [
         project: ["./tsconfig.json", "./tsconfig.test.json"],
       },
       globals: {
+        global: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
         console: "readonly",
         process: "readonly",
         __dirname: "readonly",

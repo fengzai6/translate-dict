@@ -15,8 +15,23 @@
     "本地词典",
     "翻译"
   ],
-  "version": "1.2.3",
+  "version": "1.2.4",
   "publisher": "fengzai6",
+  "scripts": {
+    "dev": "rollup -c -w",
+    "lint": "eslint . --ext .ts",
+    "type-check": "tsc --noEmit",
+    "pretest": "yarn lint && yarn type-check",
+    "package": "vsce package --allow-star-activation",
+    "update": "node ./scripts/update-dict.js",
+    "count": "node ./scripts/count-dict.js",
+    "build": "rollup -c && yarn package",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "vitest bench",
+    "test-compile": "tsc -p tsconfig.test.json",
+    "test:vscode": "yarn test-compile && node ./out/test/runTest.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/fengzai6/translate-dict.git"
@@ -155,24 +170,29 @@
             "快捷键翻译：选中文本后按 Alt+T 触发翻译"
           ],
           "description": "翻译触发模式"
+        },
+        "translateDict.enableOnlineFallback": {
+          "type": "boolean",
+          "default": false,
+          "description": "当本地词库无结果时，尝试通过在线 API 获取翻译（需要网络连接）"
+        },
+        "translateDict.onlineFallbackApi": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "google",
+            "yandex"
+          ],
+          "enumDescriptions": [
+            "自动：优先使用 Google 翻译，失败时切换到 Yandex",
+            "仅使用 Google 翻译",
+            "仅使用 Yandex 翻译"
+          ],
+          "description": "在线回退翻译使用的 API（仅在 enableOnlineFallback 为 true 时生效）"
         }
       }
     }
-  },
-  "scripts": {
-    "dev": "rollup -c -w",
-    "lint": "eslint . --ext .ts",
-    "type-check": "tsc --noEmit",
-    "pretest": "yarn lint && yarn type-check",
-    "package": "vsce package --allow-star-activation",
-    "update": "node ./scripts/update-dict.js",
-    "count": "node ./scripts/count-dict.js",
-    "build": "rollup -c && yarn package",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "bench": "vitest bench",
-    "test-compile": "tsc -p tsconfig.test.json",
-    "test:vscode": "yarn test-compile && node ./out/test/runTest.js"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^29.0.0",

@@ -4,6 +4,20 @@ All notable changes to the "translate-dict" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.4] - 2026-03-04
+
+### 新功能
+
+- feat: 翻译模式切换功能
+  - 支持两种翻译触发模式：悬浮即翻译（hover）和选中并按快捷键翻译（shortcut `Alt+T`）
+  - 新增 `translateDict.toggleTranslationMode` 命令，可快速在两种模式间切换，右键菜单可访问
+  - 新增 `translateDict.translationMode` 配置项
+- feat: 在线回退翻译
+  - 当本地词库无结果时，可自动通过在线 API 获取翻译（默认关闭，需手动开启）
+  - 支持 Google 翻译和 Yandex 翻译，`auto` 模式下 Google 优先、Yandex 兜底
+  - 新增 `translateDict.enableOnlineFallback` 配置项（总开关）
+  - 新增 `translateDict.onlineFallbackApi` 配置项（API 选择）
+
 ## [1.2.3] - 2026-01-28
 
 ### 新功能

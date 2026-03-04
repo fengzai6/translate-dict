@@ -1,7 +1,14 @@
 import * as vscode from "vscode";
-import { MARKDOWN_FOOTER, MARKDOWN_HEADER } from "./constants";
-import { containsChinese } from "./reverseQuery";
+import { MARKDOWN_FOOTER, MARKDOWN_HEADER, MARKDOWN_LINE } from "./constants";
+import { containsChinese, reverseQuery } from "./reverseQuery";
 import { convertToMarkdown } from "./utils/convert";
+import { parseAndQuery } from "./utils/format";
+import {
+  OnlineTranslateApi,
+  fetchOnlineTranslation,
+  getApiLabel,
+} from "./utils/onlineTranslate";
+import { getDefaultPlatformUrl } from "./utils/platform";
 
 // 全局翻译开关状态
 let translationEnabled = true;
@@ -17,6 +24,27 @@ type TranslationMode = "hover" | "shortcut";
 function getTranslationMode(): TranslationMode {
   const config = vscode.workspace.getConfiguration("translateDict");
   return config.get<TranslationMode>("translationMode", "hover");
+}
+
+/**
+ * 判断单词在本地词库中是否有翻译结果
+ */
+function hasLocalTranslation(word: string): boolean {
+  const results = parseAndQuery(word);
+  return results.some((r) => r.result !== undefined);
+}
+
+/**
+ * 根据配置获取在线回退 API 列表（按优先级排序）
+ */
+function getOnlineFallbackApis(
+  config: vscode.WorkspaceConfiguration
+): OnlineTranslateApi[] {
+  const apiSetting = config.get<string>("onlineFallbackApi", "auto");
+  if (apiSetting === "google") return ["google"];
+  if (apiSetting === "yandex") return ["yandex"];
+  // auto：谷歌优先，失败则 Yandex
+  return ["google", "yandex"];
 }
 
 /**
@@ -98,10 +126,10 @@ export function init(context?: vscode.ExtensionContext): void {
   }
 
   vscode.languages.registerHoverProvider("*", {
-    provideHover(
+    async provideHover(
       document: vscode.TextDocument,
       position: vscode.Position
-    ): vscode.Hover | undefined {
+    ): Promise<vscode.Hover | undefined> {
       // 检查全局开关
       if (!translationEnabled) {
         return;
@@ -126,6 +154,10 @@ export function init(context?: vscode.ExtensionContext): void {
       const chineseToEnglishMaxResults = config.get<number>(
         "chineseToEnglishMaxResults",
         10
+      );
+      const enableOnlineFallback = config.get<boolean>(
+        "enableOnlineFallback",
+        false
       );
 
       // 获取当前文件的扩展名（不含点号）
@@ -180,11 +212,49 @@ export function init(context?: vscode.ExtensionContext): void {
         return;
       }
 
+      // 优先使用本地词库结果
       const wordsMarkdown = convertToMarkdown(word, chineseToEnglishMaxResults);
 
       const headerText = isChinese
         ? `中译英 \`${originText}\` :  \n`
         : MARKDOWN_HEADER.replace("$word", originText);
+
+      // 非中文且本地无结果时，尝试在线回退翻译
+      if (!isChinese && !hasLocalTranslation(originText) && enableOnlineFallback) {
+        const apis = getOnlineFallbackApis(config);
+        const online = await fetchOnlineTranslation(originText, apis, "en-zh");
+        if (online) {
+          const defaultUrl = getDefaultPlatformUrl(originText);
+          const onlineMarkdown =
+            `- [${originText}](${defaultUrl}) :  \n` +
+            `${online.translation}` +
+            MARKDOWN_LINE +
+            `*${getApiLabel(online.source)}*`;
+          return new vscode.Hover(
+            headerText + onlineMarkdown + MARKDOWN_FOOTER
+          );
+        }
+      }
+
+      // 中文且本地无结果时，尝试在线回退翻译
+      if (isChinese && reverseQuery(originText, 1).length === 0 && enableOnlineFallback) {
+        const apis = getOnlineFallbackApis(config);
+        const online = await fetchOnlineTranslation(originText, apis, "zh-en");
+        if (online) {
+          const onlineMarkdown =
+            `- ${online.translation}` +
+            MARKDOWN_LINE +
+            `*${getApiLabel(online.source)}*`;
+          return new vscode.Hover(
+            headerText + onlineMarkdown + MARKDOWN_FOOTER
+          );
+        }
+      }
+
+      if (!wordsMarkdown) {
+        return;
+      }
+
       const hoverText = headerText + wordsMarkdown + MARKDOWN_FOOTER;
 
       return new vscode.Hover(hoverText);

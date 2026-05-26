@@ -118,8 +118,11 @@ export function init(context?: vscode.ExtensionContext): void {
           }
 
           shortcutTriggered = true;
-          await vscode.commands.executeCommand("editor.action.showHover");
-          shortcutTriggered = false;
+          try {
+            await vscode.commands.executeCommand("editor.action.showHover");
+          } finally {
+            shortcutTriggered = false;
+          }
         }
       )
     );

@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import type { DictData } from "./types";
+import type { DictData, DictResult } from "./types";
 
 /**
  * 生成单词的各种大小写变体
@@ -45,7 +45,7 @@ export function loadDict(word: string): DictData | null {
 export function findInDict(word: string, dict: DictData): string | null {
   const variants = getWordVariants(word);
   for (const variant of variants) {
-    if (dict[variant]) {
+    if (Object.prototype.hasOwnProperty.call(dict, variant)) {
       return variant;
     }
   }
@@ -53,11 +53,28 @@ export function findInDict(word: string, dict: DictData): string | null {
 }
 
 /**
+ * 查询单词的词典结果
+ */
+export function queryDict(word: string): DictResult {
+  if (word.length < 2) return undefined;
+
+  const dict = loadDict(word);
+  if (!dict) return undefined;
+
+  const matchedVariant = findInDict(word, dict);
+  if (!matchedVariant) return undefined;
+
+  const entry = dict[matchedVariant];
+  if (typeof entry === "object") {
+    return entry;
+  }
+
+  return { w: matchedVariant, t: entry };
+}
+
+/**
  * 检查单词是否在词典中存在
  */
 export function isWordInDict(word: string): boolean {
-  if (word.length < 2) return false;
-  const dict = loadDict(word);
-  if (!dict) return false;
-  return findInDict(word, dict) !== null;
+  return queryDict(word) !== undefined;
 }

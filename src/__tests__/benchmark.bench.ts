@@ -44,6 +44,18 @@ describe("parseAndQuery 性能测试", () => {
     parseAndQuery("IUser");
   });
 
+  bench("复杂情况 - IUserDTOService", () => {
+    parseAndQuery("IUserDTOService");
+  });
+
+  bench("复杂情况 - customHTTPRequestHandler", () => {
+    parseAndQuery("customHTTPRequestHandler");
+  });
+
+  bench("复杂情况 - getURLForHTTPAPI", () => {
+    parseAndQuery("getURLForHTTPAPI");
+  });
+
   // 组合词
   bench("组合词 - audioinput", () => {
     parseAndQuery("audioinput");
@@ -51,6 +63,18 @@ describe("parseAndQuery 性能测试", () => {
 
   bench("组合词 - videooutput", () => {
     parseAndQuery("videooutput");
+  });
+
+  bench("组合词 - userprofilemanager", () => {
+    parseAndQuery("userprofilemanager");
+  });
+
+  bench("组合词 - superuserprofilemanager", () => {
+    parseAndQuery("superuserprofilemanager");
+  });
+
+  bench("组合词 - notexistwordmanager", () => {
+    parseAndQuery("notexistwordmanager");
   });
 
   // 下划线分隔
@@ -90,6 +114,10 @@ describe("parseAndQuery 性能测试", () => {
   bench("不存在 - xyzabc", () => {
     parseAndQuery("xyzabc");
   });
+
+  bench("不存在 - notexistword", () => {
+    parseAndQuery("notexistword");
+  });
 });
 
 describe("reverseQuery 中译英性能测试", () => {
@@ -115,6 +143,10 @@ describe("reverseQuery 中译英性能测试", () => {
     reverseQuery("男人", 10);
   });
 
+  bench("双字词 - 服务器", () => {
+    reverseQuery("服务器", 10);
+  });
+
   // 技术词汇
   bench("技术词汇 - 计算机", () => {
     reverseQuery("计算机", 10);
@@ -128,13 +160,33 @@ describe("reverseQuery 中译英性能测试", () => {
     reverseQuery("服务器", 10);
   });
 
+  bench("技术词汇 - 数据结构", () => {
+    reverseQuery("数据结构", 10);
+  });
+
+  bench("技术词汇 - 网络协议", () => {
+    reverseQuery("网络协议", 10);
+  });
+
   // 较长词汇
   bench("长词汇 - 国际化", () => {
     reverseQuery("国际化", 10);
   });
 
+  bench("长词汇 - 用户界面", () => {
+    reverseQuery("用户界面", 10);
+  });
+
+  bench("长词汇 - 项目管理", () => {
+    reverseQuery("项目管理", 10);
+  });
+
   // 生僻词汇（可能匹配较少）
   bench("生僻词 - 量子力学", () => {
     reverseQuery("量子力学", 10);
+  });
+
+  bench("生僻词 - 人工智能", () => {
+    reverseQuery("人工智能", 10);
   });
 });

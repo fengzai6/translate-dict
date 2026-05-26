@@ -65,10 +65,11 @@ describe("queryWordsForTest", () => {
     expect(results[1]?.w).toBe("input");
   });
 
-  it("应该返回 undefined 当单词不在词典中", () => {
+  it("应该尽量拆分未知长串中的可识别单词", () => {
     const results = queryWordsForTest("notexistword");
-    expect(results).toHaveLength(1);
-    expect(results[0]).toBeUndefined();
+    expect(results.length).toBeGreaterThan(1);
+    expect(results[0]?.w).toBe("not");
+    expect(results.some((item) => item?.w === "word")).toBe(true);
   });
 
   it("应该处理空字符串", () => {
@@ -129,6 +130,40 @@ describe("queryWordsForTest", () => {
     expect(results.length).toBeGreaterThanOrEqual(4);
     expect(results[0]?.w).toBe("get");
     expect(results[1]?.w).toBe("user");
+  });
+
+  it("应该处理多个技术缩写和普通单词混合的命名", () => {
+    const results = queryWordsForTest("getURLForHTTPAPI");
+    expect(results.length).toBe(5);
+    expect(results[0]?.w).toBe("get");
+    expect(results[1]?.w).toBe("URL");
+    expect(results[2]?.w).toBe("for");
+    expect(results[3]?.w).toBe("HTTP");
+  });
+
+  it("应该处理接口前缀加 DTO 的业务命名", () => {
+    const results = queryWordsForTest("IUserDTOService");
+    expect(results.length).toBe(3);
+    expect(results[0]?.w).toBe("user");
+    expect(results[1]).toBeUndefined();
+    expect(results[2]?.w).toBe("service");
+  });
+
+  it("应该优先保留已知的完整全小写单词", () => {
+    const results = queryWordsForTest("superuserprofilemanager");
+    expect(results.length).toBe(3);
+    expect(results[0]?.w).toBe("superuser");
+    expect(results[1]?.w).toBe("profile");
+    expect(results[2]?.w).toBe("manager");
+  });
+
+  it("应该尽量保留未知长串中的已知后缀单词", () => {
+    const results = queryWordsForTest("notexistwordmanager");
+    expect(results.length).toBe(4);
+    expect(results[0]?.w).toBe("not");
+    expect(results[1]?.w).toBe("exist");
+    expect(results[2]?.w).toBe("word");
+    expect(results[3]?.w).toBe("manager");
   });
 
   it("应该处理带音标的单词", () => {

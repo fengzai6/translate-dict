@@ -84,5 +84,57 @@ describe("reverseQuery", () => {
         }
       }
     });
+
+    it("应该命中技术词汇的稳定结果", () => {
+      const userResults = reverseQuery("用户", 5);
+      expect(userResults.length).toBeGreaterThan(0);
+      expect(userResults[0]).toMatchObject({
+        word: "enduser",
+        translation: "用户",
+      });
+
+      const serverResults = reverseQuery("服务器", 10);
+      expect(serverResults.some((r) => r.word === "server")).toBe(true);
+      expect(serverResults.some((r) => r.translation.includes("服务器"))).toBe(
+        true
+      );
+
+      const networkResults = reverseQuery("网络", 10);
+      expect(networkResults.some((r) => r.word === "network")).toBe(true);
+      expect(networkResults.some((r) => r.translation.includes("网络"))).toBe(
+        true
+      );
+    });
+
+    it("应该优先返回完整短语匹配结果", () => {
+      const results = reverseQuery("人工智能", 10);
+
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0]).toMatchObject({
+        word: "artificial-intelligence",
+        translation: "人工智能",
+      });
+      expect(results.some((r) => r.word === "AI")).toBe(true);
+    });
+
+    it("应该保留常见业务语义词的相关结果", () => {
+      const serviceResults = reverseQuery("服务", 10);
+      expect(serviceResults.some((r) => r.word === "service")).toBe(true);
+      expect(serviceResults.some((r) => r.translation.includes("服务"))).toBe(
+        true
+      );
+
+      const manageResults = reverseQuery("管理", 10);
+      expect(manageResults.some((r) => r.word === "administer")).toBe(true);
+      expect(manageResults.some((r) => r.translation.includes("管理"))).toBe(
+        true
+      );
+
+      const itemResults = reverseQuery("项目", 10);
+      expect(itemResults.some((r) => r.word === "item")).toBe(true);
+      expect(itemResults.some((r) => r.translation.includes("项目"))).toBe(
+        true
+      );
+    });
   });
 });

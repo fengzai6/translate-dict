@@ -524,10 +524,10 @@
   resolved "https://registry.npmjs.org/@types/resolve/-/resolve-1.20.2.tgz#97d26e00cd4a0423b4af620abecf3e6f442b7975"
   integrity sha512-60BCwRFOZCQhDncwQdxxeOEEkbc5dIMccYLwbxsS4TUNeVECQ/pBJ0j09mrHOl/JJvpRPGwO9SvE4nR2Nb/a4Q==
 
-"@types/vscode@^1.52.0":
-  version "1.108.1"
-  resolved "https://registry.npmjs.org/@types/vscode/-/vscode-1.108.1.tgz#ed56b273acd865960cfea8d884e20433d9ed523b"
-  integrity sha512-DerV0BbSzt87TbrqmZ7lRDIYaMiqvP8tmJTzW2p49ZBVtGUnGAu2RGQd1Wv4XMzEVUpaHbsemVM5nfuQJj7H6w==
+"@types/vscode@^1.88.0":
+  version "1.120.0"
+  resolved "https://registry.npmjs.org/@types/vscode/-/vscode-1.120.0.tgz#af36ef6e9952aa643e3682468197e319be80b4ae"
+  integrity sha512-feaT4Rst+FkTch5zz/ZbNCxoIvo55YU80Be2kiL7OJcod4+CUYf2lUBPdIJzozNnSEMq1VRTGrWEcCGFB3fBmA==
 
 "@types/yauzl@^2.9.1":
   version "2.10.3"

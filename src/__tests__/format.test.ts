@@ -94,6 +94,75 @@ describe("format", () => {
       expect(results.map((r) => r.word)).toEqual(["HTTP", "Service"]);
     });
 
+    it("应该优先保留可识别的技术缩写块", () => {
+      const results = parseAndQuery("getUserDTOList");
+      expect(results.map((r) => r.word)).toEqual(["get", "User", "DTO", "List"]);
+    });
+
+    it("应该优先选择更少碎片的组合词拆分", () => {
+      const results = parseAndQuery("userProfileManager");
+      expect(results.map((r) => r.word)).toEqual(["user", "Profile", "Manager"]);
+    });
+
+    it("应该避免把全小写组合词拆成无意义碎片", () => {
+      const results = parseAndQuery("userprofilemanager");
+      expect(results.map((r) => r.word).map((word) => word.toLowerCase())).toEqual([
+        "user",
+        "profile",
+        "manager",
+      ]);
+    });
+
+    it("应该保留完整的大写缩写加普通单词结构", () => {
+      const results = parseAndQuery("XMLHttpRequest");
+      expect(results.map((r) => r.word)).toEqual(["XML", "Http", "Request"]);
+    });
+
+    it("应该处理多段技术缩写混合命名", () => {
+      const results = parseAndQuery("getURLForHTTPAPI");
+      expect(results.map((r) => r.word)).toEqual([
+        "get",
+        "URL",
+        "For",
+        "HTTP",
+        "API",
+      ]);
+    });
+
+    it("应该处理前缀加缩写再加普通单词的复杂命名", () => {
+      const results = parseAndQuery("customHTTPRequestHandler");
+      expect(results.map((r) => r.word)).toEqual([
+        "custom",
+        "HTTP",
+        "Request",
+        "Handler",
+      ]);
+    });
+
+    it("应该处理接口前缀加 DTO 缩写命名", () => {
+      const results = parseAndQuery("IUserDTOService");
+      expect(results.map((r) => r.word)).toEqual(["User", "DTO", "Service"]);
+    });
+
+    it("应该优先保留词典中已存在的完整全小写单词", () => {
+      const results = parseAndQuery("superuserprofilemanager");
+      expect(results.map((r) => r.word).map((word) => word.toLowerCase())).toEqual([
+        "superuser",
+        "profile",
+        "manager",
+      ]);
+    });
+
+    it("应该处理未知长串加已知后缀的组合", () => {
+      const results = parseAndQuery("notexistwordmanager");
+      expect(results.map((r) => r.word).map((word) => word.toLowerCase())).toEqual([
+        "not",
+        "exist",
+        "word",
+        "manager",
+      ]);
+    });
+
     it("应该返回查询结果", () => {
       const results = parseAndQuery("user");
       expect(results.length).toBe(1);

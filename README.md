@@ -32,9 +32,9 @@
 - **🖱 灵活触发模式**: 支持「悬浮即翻译」和「选中+快捷键（`Alt+T`）翻译」两种模式，可随时切换。
 - **🧠 智能代码拆分**: 完美识别编程常用的命名格式：
   - 处理 `camelCase`, `PascalCase`, `snake_case`, `kebab-case`。
-  - 智能解析组合词（如 `audioinput` → `audio` + `input`）。
-  - 处理连续大写缩写（如 `HTTPServer` → `HTTP` + `Server`）。
-  - 自动过滤常见前缀（如 `IUser` → `User`）。
+  - 智能解析组合词（如 `audioinput` → `audio` + `input`，`superuserprofilemanager` → `superuser` + `profile` + `manager`）。
+  - 处理连续大写缩写（如 `HTTPServer` → `HTTP` + `Server`，`getURLForHTTPAPI` → `get` + `URL` + `For` + `HTTP` + `API`）。
+  - 自动过滤常见接口前缀（如 `IUser` → `User`，`IUserDTOService` → `User` + `DTO` + `Service`）。
 - **🔍 双向翻译**:
   - **英译中**: 悬停直接显示，支持单词、短语及各种大小写变体。
   - **中译英**: 选中中文文本悬停，智能匹配最佳英文释义（支持得分排序）。
@@ -51,7 +51,7 @@
 
 ### 2. 智能单词拆分 (Smart Word Splitting)
 
-自动识别并拆分复杂的变量名、类名及缩写，助力理解代码逻辑。
+自动识别并拆分复杂的变量名、类名、技术缩写及组合词，助力理解代码逻辑。
 ![单词拆分](assets/Snipaste_02.png)
 
 ### 3. 中译英支持 (Chinese to English)
@@ -89,7 +89,7 @@
 | `translateDict.excludeFileExtensions`      | Array   | `[]`                                       | **禁用** 翻译的文件扩展名。如 `["json", "md"]`                                               |
 | `translateDict.chineseToEnglishMaxResults` | Number  | `10`                                       | 中译英时显示的候选结果最大数量 (范围: 1-50)                                                  |
 | `translateDict.defaultTranslatePlatform`   | String  | `google`                                   | 默认翻译平台，用于单词链接跳转。可选：`google`、`baidu`、`deepl`、`bing`、`yandex`、`custom` |
-| `translateDict.customTranslateUrl`         | String  | `https://translate.google.com?text={word}` | 自定义翻译平台URL模板，使用 `{word}` 作为单词占位符                                          |
+| `translateDict.customTranslateUrl`         | String  | `https://fanyi.baidu.com/#en/zh/{word}`    | 自定义翻译平台URL模板，使用 `{word}` 作为单词占位符                                          |
 | `translateDict.translationMode`            | String  | `hover`                                    | 翻译触发模式：`hover`（悬浮即翻译）或 `shortcut`（选中后按 `Alt+T` 触发）                    |
 | `translateDict.enableOnlineFallback`       | Boolean | `false`                                    | 本地词库无结果时，是否自动调用在线 API 回退翻译（需要网络）                                  |
 | `translateDict.onlineFallbackApi`          | String  | `auto`                                     | 在线回退使用的 API：`auto`（Google 优先，失败换 Yandex）、`google`、`yandex`                 |

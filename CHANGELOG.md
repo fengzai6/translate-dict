@@ -4,6 +4,20 @@ All notable changes to the "translate-dict" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.5] - 2026-05-27
+
+### 改进
+
+- improve: 提升代码命名拆分覆盖率
+  - 更好地处理多个技术缩写混合的命名，如 `getURLForHTTPAPI`
+  - 优化接口前缀和业务缩写组合，如 `IUserDTOService`
+  - 优先保留可识别的全小写组合词，如 `superuserprofilemanager`
+- improve: 提升中译英反向查询的技术词汇与完整短语匹配稳定性
+
+### 修复
+
+- fix: 快捷键触发悬浮翻译时，确保异常情况下也会重置触发状态
+
 ## [1.2.4] - 2026-03-04
 
 ### 新功能

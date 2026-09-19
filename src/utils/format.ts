@@ -1,8 +1,13 @@
-import { isWordInDict, queryDict } from "../query";
+import {
+  createQueryCache,
+  queryDictWithCache,
+} from "../query";
 import type { DictResult } from "../types";
 
-function queryWord(word: string): DictResult {
-  return queryDict(word);
+type QueryCache = Map<string, DictResult>;
+
+function queryWord(word: string, cache: QueryCache): DictResult {
+  return queryDictWithCache(word, cache);
 }
 
 // ============================================
@@ -12,9 +17,9 @@ function queryWord(word: string): DictResult {
 /**
  * 智能拆分：优先保留词典中存在的完整词组
  */
-function splitByCase(str: string): string[] {
+function splitByCase(str: string, cache: QueryCache): string[] {
   // 先检查完整字符串是否在词典中（支持带连字符的词）
-  if (isWordInDict(str)) {
+  if (queryWord(str, cache) !== undefined) {
     return [str];
   }
 
@@ -29,7 +34,7 @@ function splitByCase(str: string): string[] {
         if (/^I[A-Z]{2,}$/.test(match)) {
           result.push("I", match.slice(1));
         } else if (/^[A-Z]{4,}$/.test(match)) {
-          result.push(...splitUppercaseAbbreviationChain(match));
+          result.push(...splitUppercaseAbbreviationChain(match, cache));
         } else {
           result.push(match);
         }
@@ -40,14 +45,14 @@ function splitByCase(str: string): string[] {
   return result;
 }
 
-function splitCompoundWord(word: string): string[] {
+function splitCompoundWord(word: string, cache: QueryCache): string[] {
   const lowerWord = word.toLowerCase();
 
-  if (isWordInDict(lowerWord)) {
+  if (queryWord(lowerWord, cache) !== undefined) {
     return [word];
   }
 
-  return findBestCompoundSplit(word);
+  return findBestCompoundSplit(word, cache);
 }
 
 function uniqueIgnoreCase(arr: string[]): string[] {
@@ -77,14 +82,15 @@ function normalizeSplitPart(part: string): string {
   return part.toLowerCase();
 }
 
-function scoreSplitParts(parts: string[]): number {
+function scoreSplitParts(parts: string[], cache: QueryCache): number {
   let score = 0;
 
   score -= parts.length * 24;
 
   for (const part of parts) {
     const normalizedPart = normalizeSplitPart(part);
-    const dictResult = queryWord(part) ?? queryWord(normalizedPart);
+    const dictResult =
+      queryWord(part, cache) ?? queryWord(normalizedPart, cache);
 
     if (dictResult) {
       score += 60 + Math.min(normalizedPart.length * 8, 96);
@@ -114,14 +120,20 @@ function scoreSplitParts(parts: string[]): number {
   return score;
 }
 
-function buildSplitCandidate(parts: string[]): SplitCandidate {
+function buildSplitCandidate(
+  parts: string[],
+  cache: QueryCache
+): SplitCandidate {
   return {
     parts,
-    score: scoreSplitParts(parts),
+    score: scoreSplitParts(parts, cache),
   };
 }
 
-function buildLowercaseSplitCandidate(parts: string[]): SplitCandidate {
+function buildLowercaseSplitCandidate(
+  parts: string[],
+  cache: QueryCache
+): SplitCandidate {
   let score = 0;
 
   for (const part of parts) {
@@ -134,6 +146,7 @@ function buildLowercaseSplitCandidate(parts: string[]): SplitCandidate {
   }
 
   score -= parts.length * 25;
+  score += scoreSplitParts(parts, cache);
 
   return {
     parts,
@@ -141,8 +154,11 @@ function buildLowercaseSplitCandidate(parts: string[]): SplitCandidate {
   };
 }
 
-function splitUppercaseAbbreviationChain(word: string): string[] {
-  if (isWordInDict(word)) {
+function splitUppercaseAbbreviationChain(
+  word: string,
+  cache: QueryCache
+): string[] {
+  if (queryWord(word, cache) !== undefined) {
     return [word];
   }
 
@@ -150,12 +166,16 @@ function splitUppercaseAbbreviationChain(word: string): string[] {
     const firstPart = word.slice(0, i);
     const secondPart = word.slice(i);
 
-    if (!isWordInDict(firstPart)) {
+    if (queryWord(firstPart, cache) === undefined) {
       continue;
     }
 
-    const secondParts = splitCompoundWord(secondPart);
-    if (secondParts.length === 1 && secondParts[0] === secondPart && !isWordInDict(secondPart)) {
+    const secondParts = splitCompoundWord(secondPart, cache);
+    if (
+      secondParts.length === 1 &&
+      secondParts[0] === secondPart &&
+      queryWord(secondPart, cache) === undefined
+    ) {
       continue;
     }
 
@@ -187,13 +207,16 @@ function pickBetterCandidate(
   return candidateLongest > currentLongest ? candidate : current;
 }
 
-function splitLowercaseCompoundWord(word: string): string[] {
+function splitLowercaseCompoundWord(
+  word: string,
+  cache: QueryCache
+): string[] {
   const memo = new Map<number, SplitCandidate | null>();
   const lowerWord = word.toLowerCase();
 
   const search = (start: number): SplitCandidate | null => {
     if (start === lowerWord.length) {
-      return buildSplitCandidate([]);
+      return buildSplitCandidate([], cache);
     }
 
     if (memo.has(start)) {
@@ -204,7 +227,8 @@ function splitLowercaseCompoundWord(word: string): string[] {
 
     for (let end = start + 1; end <= lowerWord.length; end++) {
       const part = lowerWord.slice(start, end);
-      const isDictionaryWord = part.length > 1 && isWordInDict(part);
+      const isDictionaryWord =
+        part.length > 1 && queryWord(part, cache) !== undefined;
       const isSingleCharacter = part.length === 1 && isAllowedSingleCharacter(part);
 
       if (!isDictionaryWord && !isSingleCharacter) {
@@ -216,10 +240,10 @@ function splitLowercaseCompoundWord(word: string): string[] {
         continue;
       }
 
-      const candidate = buildLowercaseSplitCandidate([
-        word.slice(start, end),
-        ...restCandidate.parts,
-      ]);
+      const candidate = buildLowercaseSplitCandidate(
+        [word.slice(start, end), ...restCandidate.parts],
+        cache
+      );
       bestCandidate = pickBetterCandidate(bestCandidate, candidate);
     }
 
@@ -246,16 +270,16 @@ function normalizeLeadingInterfacePrefix(parts: string[]): string[] {
   return [parts[1], ...parts.slice(2)];
 }
 
-function findBestCompoundSplit(word: string): string[] {
+function findBestCompoundSplit(word: string, cache: QueryCache): string[] {
   if (/^[A-Z]{4,}$/.test(word)) {
-    return splitUppercaseAbbreviationChain(word);
+    return splitUppercaseAbbreviationChain(word, cache);
   }
 
   if (/^[a-z]+$/.test(word)) {
-    return splitLowercaseCompoundWord(word);
+    return splitLowercaseCompoundWord(word, cache);
   }
 
-  let bestCandidate = buildSplitCandidate([word]);
+  let bestCandidate = buildSplitCandidate([word], cache);
   const lowerWord = word.toLowerCase();
 
   for (let i = 1; i <= lowerWord.length - 2; i++) {
@@ -263,14 +287,21 @@ function findBestCompoundSplit(word: string): string[] {
     const secondPart = word.slice(i);
 
     const firstValid =
-      i === 1 ? isAllowedSingleCharacter(firstPart) : isWordInDict(firstPart);
+      i === 1
+        ? isAllowedSingleCharacter(firstPart)
+        : queryWord(firstPart, cache) !== undefined;
 
     if (!firstValid) {
       continue;
     }
 
-    const secondParts = normalizeLeadingInterfacePrefix(splitCompoundWord(secondPart));
-    const candidate = buildSplitCandidate([word.slice(0, i), ...secondParts]);
+    const secondParts = normalizeLeadingInterfacePrefix(
+      splitCompoundWord(secondPart, cache)
+    );
+    const candidate = buildSplitCandidate(
+      [word.slice(0, i), ...secondParts],
+      cache
+    );
     bestCandidate = pickBetterCandidate(bestCandidate, candidate);
   }
 
@@ -290,23 +321,28 @@ export interface WordQueryResult {
  * 拆分并查询单词
  */
 export function parseAndQuery(character: string): WordQueryResult[] {
-  const cleaned = character.replace(/"/g, "").replace(/\d+/g, "");
+  const cache = createQueryCache();
+  const cleaned = character
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .replace(/"/g, "")
+    .replace(/\d+/g, " ");
   if (!cleaned) {
     return [];
   }
 
-  const words = splitByCase(cleaned);
+  const words = splitByCase(cleaned, cache);
   const filtered = uniqueIgnoreCase(words.filter((w) => w.length > 1));
 
   const expanded: string[] = [];
   for (const word of filtered) {
-    expanded.push(...splitCompoundWord(word));
+    expanded.push(...splitCompoundWord(word, cache));
   }
 
   const finalWords = uniqueIgnoreCase(expanded.filter((w) => w.length > 1));
 
   return finalWords.map((word) => ({
     word,
-    result: queryWord(word),
+    result: queryWord(word, cache),
   }));
 }

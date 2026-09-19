@@ -77,6 +77,14 @@ describe("parseAndQuery 性能测试", () => {
     parseAndQuery("notexistwordmanager");
   });
 
+  bench("组合词 - supercalifragilisticexpialidocious", () => {
+    parseAndQuery("supercalifragilisticexpialidocious");
+  });
+
+  bench("组合词 - audioinputaudioprofilemanager", () => {
+    parseAndQuery("audioinputaudioprofilemanager");
+  });
+
   // 下划线分隔
   bench("下划线 - user_name", () => {
     parseAndQuery("user_name");

@@ -113,6 +113,11 @@ describe("format", () => {
       ]);
     });
 
+    it("应该优先保留全小写组合词中的词典命中块", () => {
+      const results = parseAndQuery("managername");
+      expect(results.map((r) => r.word)).toEqual(["manager", "name"]);
+    });
+
     it("应该保留完整的大写缩写加普通单词结构", () => {
       const results = parseAndQuery("XMLHttpRequest");
       expect(results.map((r) => r.word)).toEqual(["XML", "Http", "Request"]);
@@ -178,6 +183,24 @@ describe("format", () => {
     it("应该移除数字", () => {
       const results = parseAndQuery("user123");
       expect(results.map((r) => r.word)).toEqual(["user"]);
+    });
+
+    it("应该把数字作为分词边界", () => {
+      expect(parseAndQuery("version2API").map((r) => r.word)).toEqual([
+        "version",
+        "API",
+      ]);
+      expect(parseAndQuery("utf8String").map((r) => r.word)).toEqual([
+        "utf",
+        "String",
+      ]);
+    });
+
+    it("应该将带重音的拉丁字母归一化为 ASCII", () => {
+      expect(parseAndQuery("café")[0]?.result?.w).toBe("cafe");
+      expect(parseAndQuery("naïve")[0]?.result?.w).toBe("naive");
+      expect(parseAndQuery("résumé")[0]?.result?.w).toBe("resume");
+      expect(parseAndQuery("fiancé")[0]?.result?.w).toBe("fiance");
     });
 
     it("应该优先查询带连字符的完整单词", () => {

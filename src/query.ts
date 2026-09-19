@@ -73,6 +73,30 @@ export function queryDict(word: string): DictResult {
 }
 
 /**
+ * 创建一次查询共享的词典缓存
+ */
+export function createQueryCache(): Map<string, DictResult> {
+  return new Map<string, DictResult>();
+}
+
+/**
+ * 通过缓存查询单词的词典结果
+ */
+export function queryDictWithCache(
+  word: string,
+  cache: Map<string, DictResult>
+): DictResult {
+  const cached = cache.get(word);
+  if (cached !== undefined || cache.has(word)) {
+    return cached;
+  }
+
+  const result = queryDict(word);
+  cache.set(word, result);
+  return result;
+}
+
+/**
  * 检查单词是否在词典中存在
  */
 export function isWordInDict(word: string): boolean {

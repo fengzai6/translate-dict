@@ -9,13 +9,34 @@ export interface OnlineTranslateResult {
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
+/** 单个在线翻译 API 请求超时时间（毫秒） */
+const REQUEST_TIMEOUT_MS = 3000;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function translateWithGoogle(
   word: string,
   direction: TranslateDirection
 ): Promise<string | null> {
   const [sl, tl] = direction === "en-zh" ? ["en", "zh-CN"] : ["zh-CN", "en"];
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dj=1&dt=t&q=${encodeURIComponent(word)}`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     headers: { "user-agent": USER_AGENT },
   });
   if (!res.ok) return null;
@@ -31,7 +52,7 @@ async function translateWithYandex(
 ): Promise<string | null> {
   const lang = direction === "en-zh" ? "en-zh" : "zh-en";
   const url = `https://translate.yandex.net/api/v1/tr.json/translate?srv=tr-url-widget&format=text&lang=${lang}&text=${encodeURIComponent(word)}`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     headers: { "user-agent": USER_AGENT },
   });
   if (!res.ok) return null;
@@ -63,7 +84,7 @@ export async function fetchOnlineTranslation(
         return { translation, source: api };
       }
     } catch {
-      // 当前 API 失败，尝试下一个
+      // 当前 API 失败（含超时），尝试下一个
     }
   }
   return null;

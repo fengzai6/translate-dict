@@ -1,14 +1,20 @@
 import * as vscode from "vscode";
 import { MARKDOWN_FOOTER, MARKDOWN_HEADER, MARKDOWN_LINE } from "./constants";
 import { containsChinese, reverseQuery } from "./reverseQuery";
-import { convertToMarkdown } from "./utils/convert";
+import {
+  convertQueryResultsToMarkdown,
+  convertReverseResultsToMarkdown,
+} from "./utils/convert";
 import { parseAndQuery } from "./utils/format";
 import {
   OnlineTranslateApi,
   fetchOnlineTranslation,
   getApiLabel,
 } from "./utils/onlineTranslate";
-import { getDefaultPlatformUrl } from "./utils/platform";
+import {
+  generatePlatformLinks,
+  getDefaultPlatformUrl,
+} from "./utils/platform";
 
 // 全局翻译开关状态
 let translationEnabled = true;
@@ -27,14 +33,6 @@ function getTranslationMode(): TranslationMode {
 }
 
 /**
- * 判断单词在本地词库中是否有翻译结果
- */
-function hasLocalTranslation(word: string): boolean {
-  const results = parseAndQuery(word);
-  return results.some((r) => r.result !== undefined);
-}
-
-/**
  * 根据配置获取在线回退 API 列表（按优先级排序）
  */
 function getOnlineFallbackApis(
@@ -45,6 +43,24 @@ function getOnlineFallbackApis(
   if (apiSetting === "yandex") return ["yandex"];
   // auto：谷歌优先，失败则 Yandex
   return ["google", "yandex"];
+}
+
+/**
+ * 规范化文件扩展名，统一为小写且不含点号
+ */
+function normalizeFileExtension(fileName: string): string {
+  const lastDotIndex = fileName.lastIndexOf(".");
+  if (lastDotIndex === -1) {
+    return "";
+  }
+  return fileName.substring(lastDotIndex + 1).toLowerCase();
+}
+
+/**
+ * 将配置中的扩展名列表规范化为小写
+ */
+function normalizeExtensionList(extensions: string[]): string[] {
+  return extensions.map((ext) => ext.replace(/^\./, "").toLowerCase());
 }
 
 /**
@@ -128,7 +144,7 @@ export function init(context?: vscode.ExtensionContext): void {
     );
   }
 
-  vscode.languages.registerHoverProvider("*", {
+  const hoverProvider = vscode.languages.registerHoverProvider("*", {
     async provideHover(
       document: vscode.TextDocument,
       position: vscode.Position
@@ -146,13 +162,11 @@ export function init(context?: vscode.ExtensionContext): void {
 
       // 获取配置
       const config = vscode.workspace.getConfiguration("translateDict");
-      const includeFileExtensions = config.get<string[]>(
-        "includeFileExtensions",
-        []
+      const includeFileExtensions = normalizeExtensionList(
+        config.get<string[]>("includeFileExtensions", [])
       );
-      const excludeFileExtensions = config.get<string[]>(
-        "excludeFileExtensions",
-        []
+      const excludeFileExtensions = normalizeExtensionList(
+        config.get<string[]>("excludeFileExtensions", [])
       );
       const chineseToEnglishMaxResults = config.get<number>(
         "chineseToEnglishMaxResults",
@@ -163,11 +177,8 @@ export function init(context?: vscode.ExtensionContext): void {
         false
       );
 
-      // 获取当前文件的扩展名（不含点号）
-      const fileName = document.fileName;
-      const lastDotIndex = fileName.lastIndexOf(".");
-      const fileExtension =
-        lastDotIndex !== -1 ? fileName.substring(lastDotIndex + 1) : "";
+      // 获取当前文件的扩展名（不含点号，统一小写）
+      const fileExtension = normalizeFileExtension(document.fileName);
 
       // 判断是否应该提供翻译
       // 如果在排除列表中，直接返回
@@ -215,15 +226,65 @@ export function init(context?: vscode.ExtensionContext): void {
         return;
       }
 
-      // 优先使用本地词库结果
-      const wordsMarkdown = convertToMarkdown(word, chineseToEnglishMaxResults);
-
       const headerText = isChinese
         ? `中译英 \`${originText}\` :  \n`
         : MARKDOWN_HEADER.replace("$word", originText);
 
-      // 非中文且本地无结果时，尝试在线回退翻译
-      if (!isChinese && !hasLocalTranslation(originText) && enableOnlineFallback) {
+      // 中译英：只执行一次 reverseQuery
+      if (isChinese) {
+        const reverseResults = reverseQuery(
+          originText,
+          chineseToEnglishMaxResults
+        );
+
+        if (reverseResults.length > 0) {
+          const wordsMarkdown =
+            convertReverseResultsToMarkdown(reverseResults);
+          return new vscode.Hover(
+            headerText + wordsMarkdown + MARKDOWN_FOOTER
+          );
+        }
+
+        if (enableOnlineFallback) {
+          const apis = getOnlineFallbackApis(config);
+          const online = await fetchOnlineTranslation(
+            originText,
+            apis,
+            "zh-en"
+          );
+          if (online) {
+            const onlineMarkdown =
+              `- ${online.translation}` +
+              MARKDOWN_LINE +
+              `*${getApiLabel(online.source)}*`;
+            return new vscode.Hover(
+              headerText + onlineMarkdown + MARKDOWN_FOOTER
+            );
+          }
+        }
+
+        const platformLinks = generatePlatformLinks(originText);
+        const emptyMarkdown = `- 本地词库暂无匹配的英文单词${
+          platformLinks ? ` , 查看 ${platformLinks}` : ""
+        }`;
+        return new vscode.Hover(headerText + emptyMarkdown + MARKDOWN_FOOTER);
+      }
+
+      // 英译中：只执行一次 parseAndQuery
+      const queryResults = parseAndQuery(word);
+      const hasLocalResult = queryResults.some((r) => r.result !== undefined);
+
+      if (hasLocalResult) {
+        const wordsMarkdown = convertQueryResultsToMarkdown(queryResults);
+        if (!wordsMarkdown) {
+          return;
+        }
+        return new vscode.Hover(
+          headerText + wordsMarkdown + MARKDOWN_FOOTER
+        );
+      }
+
+      if (enableOnlineFallback) {
         const apis = getOnlineFallbackApis(config);
         const online = await fetchOnlineTranslation(originText, apis, "en-zh");
         if (online) {
@@ -239,28 +300,16 @@ export function init(context?: vscode.ExtensionContext): void {
         }
       }
 
-      // 中文且本地无结果时，尝试在线回退翻译
-      if (isChinese && reverseQuery(originText, 1).length === 0 && enableOnlineFallback) {
-        const apis = getOnlineFallbackApis(config);
-        const online = await fetchOnlineTranslation(originText, apis, "zh-en");
-        if (online) {
-          const onlineMarkdown =
-            `- ${online.translation}` +
-            MARKDOWN_LINE +
-            `*${getApiLabel(online.source)}*`;
-          return new vscode.Hover(
-            headerText + onlineMarkdown + MARKDOWN_FOOTER
-          );
-        }
-      }
-
+      const wordsMarkdown = convertQueryResultsToMarkdown(queryResults);
       if (!wordsMarkdown) {
         return;
       }
 
-      const hoverText = headerText + wordsMarkdown + MARKDOWN_FOOTER;
-
-      return new vscode.Hover(hoverText);
+      return new vscode.Hover(headerText + wordsMarkdown + MARKDOWN_FOOTER);
     },
   });
+
+  if (context) {
+    context.subscriptions.push(hoverProvider);
+  }
 }

@@ -32,7 +32,7 @@ jobs:
         run: yarn rollup -c
 
       - name: Package extension
-        run: npx @vscode/vsce package --allow-star-activation
+        run: npx @vscode/vsce package
 
       - name: Get version
         id: get_version

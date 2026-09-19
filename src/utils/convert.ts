@@ -1,7 +1,7 @@
 import { MARKDOWN_LINE } from "../constants";
 import { containsChinese, reverseQuery } from "../reverseQuery";
 import { DictResult } from "../types";
-import { parseAndQuery } from "./format";
+import { parseAndQuery, WordQueryResult } from "./format";
 import { generatePlatformLinks, getDefaultPlatformUrl } from "./platform";
 
 /**
@@ -35,7 +35,7 @@ export const queryWordsForTest = (word: string): DictResult[] => {
 /**
  * 生成中译英的 Markdown 结果
  */
-function genChineseToEnglishMarkdown(
+export function convertReverseResultsToMarkdown(
   results: Array<{ word: string; translation: string; phonetic?: string }>
 ): string {
   if (results.length === 0) {
@@ -48,6 +48,25 @@ function genChineseToEnglishMarkdown(
       const phoneticText = item.phonetic ? `*/${item.phonetic}/*` : "";
       const markdown = `- [${item.word}](${defaultUrl}) ${phoneticText}:  
 ${item.translation.replace(/\\n/g, `  \n`)}`;
+      return index === 0 ? markdown : MARKDOWN_LINE + markdown;
+    })
+    .join("");
+}
+
+/**
+ * 将英译中查询结果转为 Markdown
+ */
+export function convertQueryResultsToMarkdown(
+  results: WordQueryResult[]
+): string {
+  if (results.length === 0) {
+    return "";
+  }
+
+  return results
+    .map((item, index) => {
+      const displayWord = item.result?.w ?? item.word;
+      const markdown = genMarkdown(displayWord, item.result?.t, item.result?.p);
       return index === 0 ? markdown : MARKDOWN_LINE + markdown;
     })
     .join("");
@@ -70,21 +89,9 @@ export const convertToMarkdown = (
       return `- 本地词库暂无匹配的英文单词${platformLinks ? ` , 查看 ${platformLinks}` : ""}`;
     }
 
-    return genChineseToEnglishMarkdown(reverseResults);
+    return convertReverseResultsToMarkdown(reverseResults);
   }
 
   // 原有的英译中逻辑
-  const results = parseAndQuery(word);
-
-  if (results.length === 0) {
-    return "";
-  }
-
-  return results
-    .map((item, index) => {
-      const displayWord = item.result?.w ?? item.word;
-      const markdown = genMarkdown(displayWord, item.result?.t, item.result?.p);
-      return index === 0 ? markdown : MARKDOWN_LINE + markdown;
-    })
-    .join("");
+  return convertQueryResultsToMarkdown(parseAndQuery(word));
 };

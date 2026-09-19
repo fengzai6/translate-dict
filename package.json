@@ -22,7 +22,7 @@
     "lint": "eslint . --ext .ts",
     "type-check": "tsc --noEmit",
     "pretest": "yarn lint && yarn type-check",
-    "package": "vsce package --allow-star-activation",
+    "package": "vsce package",
     "update": "node ./scripts/update-dict.js",
     "count": "node ./scripts/count-dict.js",
     "build": "rollup -c && yarn package",
@@ -44,7 +44,7 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -206,6 +206,7 @@
     "@typescript-eslint/eslint-plugin": "^8.50.0",
     "@typescript-eslint/parser": "^8.50.0",
     "@vscode/test-web": "^0.0.15",
+    "@vscode/vsce": "^3.6.0",
     "adm-zip": "^0.5.16",
     "axios": "^1.13.2",
     "cli-progress": "^3.12.0",

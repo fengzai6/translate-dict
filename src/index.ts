@@ -8,6 +8,7 @@ import {
 import { parseAndQuery } from "./utils/format";
 import {
   OnlineTranslateApi,
+  OnlineTranslateResult,
   fetchOnlineTranslation,
   getApiLabel,
 } from "./utils/onlineTranslate";
@@ -21,6 +22,8 @@ let translationEnabled = true;
 
 // 快捷键触发标志（shortcut 模式下用于控制 hover provider）
 let shortcutTriggered = false;
+
+let activeOnlineTranslation: AbortController | null = null;
 
 type TranslationMode = "hover" | "shortcut";
 
@@ -61,6 +64,33 @@ function normalizeFileExtension(fileName: string): string {
  */
 function normalizeExtensionList(extensions: string[]): string[] {
   return extensions.map((ext) => ext.replace(/^\./, "").toLowerCase());
+}
+
+async function fetchLatestOnlineTranslation(
+  word: string,
+  apis: OnlineTranslateApi[],
+  direction: "en-zh" | "zh-en",
+  token: vscode.CancellationToken
+): Promise<OnlineTranslateResult | null> {
+  activeOnlineTranslation?.abort();
+  const controller = new AbortController();
+  activeOnlineTranslation = controller;
+
+  const abort = (): void => controller.abort();
+  token.onCancellationRequested(abort);
+
+  try {
+    return await fetchOnlineTranslation(
+      word,
+      apis,
+      direction,
+      controller.signal
+    );
+  } finally {
+    if (activeOnlineTranslation === controller) {
+      activeOnlineTranslation = null;
+    }
+  }
 }
 
 /**
@@ -147,7 +177,8 @@ export function init(context?: vscode.ExtensionContext): void {
   const hoverProvider = vscode.languages.registerHoverProvider("*", {
     async provideHover(
       document: vscode.TextDocument,
-      position: vscode.Position
+      position: vscode.Position,
+      token: vscode.CancellationToken
     ): Promise<vscode.Hover | undefined> {
       // 检查全局开关
       if (!translationEnabled) {
@@ -247,11 +278,15 @@ export function init(context?: vscode.ExtensionContext): void {
 
         if (enableOnlineFallback) {
           const apis = getOnlineFallbackApis(config);
-          const online = await fetchOnlineTranslation(
+          const online = await fetchLatestOnlineTranslation(
             originText,
             apis,
-            "zh-en"
+            "zh-en",
+            token
           );
+          if (token.isCancellationRequested) {
+            return;
+          }
           if (online) {
             const onlineMarkdown =
               `- ${online.translation}` +
@@ -286,7 +321,15 @@ export function init(context?: vscode.ExtensionContext): void {
 
       if (enableOnlineFallback) {
         const apis = getOnlineFallbackApis(config);
-        const online = await fetchOnlineTranslation(originText, apis, "en-zh");
+        const online = await fetchLatestOnlineTranslation(
+          originText,
+          apis,
+          "en-zh",
+          token
+        );
+        if (token.isCancellationRequested) {
+          return;
+        }
         if (online) {
           const defaultUrl = getDefaultPlatformUrl(originText);
           const onlineMarkdown =

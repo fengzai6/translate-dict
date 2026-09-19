@@ -1,7 +1,4 @@
-import {
-  createQueryCache,
-  queryDictWithCache,
-} from "../query";
+import { createQueryCache, queryDictWithCache } from "../query";
 import type { DictResult } from "../types";
 
 type QueryCache = Map<string, DictResult>;
@@ -201,16 +198,15 @@ function pickBetterCandidate(
     return candidate.parts.length < current.parts.length ? candidate : current;
   }
 
-  const candidateLongest = Math.max(...candidate.parts.map((part) => part.length));
+  const candidateLongest = Math.max(
+    ...candidate.parts.map((part) => part.length)
+  );
   const currentLongest = Math.max(...current.parts.map((part) => part.length));
 
   return candidateLongest > currentLongest ? candidate : current;
 }
 
-function splitLowercaseCompoundWord(
-  word: string,
-  cache: QueryCache
-): string[] {
+function splitLowercaseCompoundWord(word: string, cache: QueryCache): string[] {
   const memo = new Map<number, SplitCandidate | null>();
   const lowerWord = word.toLowerCase();
 
@@ -229,7 +225,8 @@ function splitLowercaseCompoundWord(
       const part = lowerWord.slice(start, end);
       const isDictionaryWord =
         part.length > 1 && queryWord(part, cache) !== undefined;
-      const isSingleCharacter = part.length === 1 && isAllowedSingleCharacter(part);
+      const isSingleCharacter =
+        part.length === 1 && isAllowedSingleCharacter(part);
 
       if (!isDictionaryWord && !isSingleCharacter) {
         continue;

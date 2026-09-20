@@ -1,20 +1,26 @@
 import * as vscode from "vscode";
-import { MARKDOWN_FOOTER, MARKDOWN_HEADER, MARKDOWN_LINE } from "./constants";
+import { MARKDOWN_FOOTER, MARKDOWN_LINE } from "./constants";
+import {
+  createHoverSession,
+  type HoverSessionState,
+  type HoverSessionTarget,
+} from "./hover-session";
 import { containsChinese, reverseQuery } from "./reverseQuery";
 import {
+  buildOriginalTextMarkdown,
   convertQueryResultsToMarkdown,
   convertReverseResultsToMarkdown,
-} from "./utils/convert";
+  isPositionInDocument,
+  parseHoverToggleArgs,
+  TOGGLE_HOVER_EXPANDED_COMMAND,
+  TOGGLE_HOVER_ORIGINAL_TEXT_COMMAND,
+  wrapHoverMarkdown,
+} from "./utils/hover-markdown";
 import { parseAndQuery } from "./utils/format";
 import {
-  isPositionInDocument,
-  parseToggleHoverArgs,
-  positionInExclusiveRange,
-  selectionTextForTranslate,
-  shouldResetSessionHover,
-  TOGGLE_HOVER_EXPANDED_COMMAND,
-  wrapHoverMarkdown,
-} from "./utils/hoverMarkdown";
+  resolveHoverQuery,
+  type HoverQuery,
+} from "./utils/hover-query";
 import {
   OnlineTranslateApi,
   OnlineTranslateResult,
@@ -34,19 +40,43 @@ let shortcutTriggered = false;
 
 let activeOnlineTranslation: AbortController | null = null;
 
-// 只覆盖当前单词的展开状态，不写入全局配置
-let sessionHover:
-  | { uri: string; line: number; character: number; expanded: boolean }
-  | undefined;
-let lastHoverUri: string | undefined;
-let lastHoverPosition: vscode.Position | undefined;
-let lastHoverSelection:
-  | { uri: string; range: vscode.Selection }
-  | undefined;
-let refreshingHover = false;
 let hoverRefreshSeq = 0;
 
 type TranslationMode = "hover" | "shortcut";
+
+function registerHoverToggleCommand(
+  context: vscode.ExtensionContext,
+  commandId: string,
+  hoverSession: ReturnType<typeof createHoverSession>,
+  updateState: (expanded: boolean) => void
+): void {
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      commandId,
+      async (
+        uri?: string,
+        line?: number,
+        character?: number,
+        expanded?: boolean
+      ) => {
+        const parsed = parseHoverToggleArgs(uri, line, character, expanded);
+        const target = hoverSession.getTarget();
+        if (
+          !parsed ||
+          !target ||
+          target.uri !== parsed.uri ||
+          target.anchorLine !== parsed.line ||
+          target.anchorCharacter !== parsed.character
+        ) {
+          return;
+        }
+
+        updateState(parsed.expanded);
+        await refreshHover(target, hoverSession);
+      }
+    )
+  );
+}
 
 /**
  * 读取当前翻译模式配置
@@ -56,50 +86,32 @@ function getTranslationMode(): TranslationMode {
   return config.get<TranslationMode>("translationMode", "hover");
 }
 
-function getAutoExpandHover(): boolean {
-  const config = vscode.workspace.getConfiguration("translateDict");
-  return config.get<boolean>("autoExpandHover", true);
-}
-
-function isSameHoverPosition(uri: string, position: vscode.Position): boolean {
-  return (
-    !!sessionHover &&
-    sessionHover.uri === uri &&
-    sessionHover.line === position.line &&
-    sessionHover.character === position.character
-  );
-}
-
-function isHoverExpanded(uri: string, position: vscode.Position): boolean {
-  if (isSameHoverPosition(uri, position)) {
-    return sessionHover!.expanded;
-  }
-  return getAutoExpandHover();
-}
-
 function toHover(
-  headerText: string,
+  originalTextMarkdown: string,
   dictionaryMarkdown: string,
   uri: string,
-  position: vscode.Position,
-  range?: vscode.Range
+  query: HoverQuery,
+  state: HoverSessionState
 ): vscode.Hover {
   const markdown = new vscode.MarkdownString(
     wrapHoverMarkdown(
-      headerText,
+      originalTextMarkdown,
       dictionaryMarkdown,
-      isHoverExpanded(uri, position),
+      state,
       {
         uri,
-        line: position.line,
-        character: position.character,
+        line: query.anchor.line,
+        character: query.anchor.character,
       }
     ) + MARKDOWN_FOOTER
   );
   markdown.isTrusted = {
-    enabledCommands: [TOGGLE_HOVER_EXPANDED_COMMAND],
+    enabledCommands: [
+      TOGGLE_HOVER_EXPANDED_COMMAND,
+      TOGGLE_HOVER_ORIGINAL_TEXT_COMMAND,
+    ],
   };
-  return new vscode.Hover(markdown, range);
+  return new vscode.Hover(markdown, query.range);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -107,56 +119,33 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * 选区是否覆盖悬停位置（Range.end 为排他边界）
+ * VS Code 没有原地更新 hover 的公开 API。命令链接点击后只隐藏并重新展示，
+ * 连续点击由 hoverRefreshSeq 保证只应用最后一次状态。
  */
-function selectionCoversPosition(
-  selection: vscode.Selection,
-  position: vscode.Position
-): boolean {
-  return positionInExclusiveRange(
-    selection.start.line,
-    selection.start.character,
-    selection.end.line,
-    selection.end.character,
-    position.line,
-    position.character
-  );
-}
-
-function selectionOverlapsRange(
-  selection: vscode.Selection,
-  range: vscode.Range
-): boolean {
-  const overlap = selection.intersection(range);
-  return !!overlap && !overlap.isEmpty;
-}
-
-/**
- * 命令链接点击会先关掉 hover。连续点击只保留最后一次刷新。
- */
-async function refreshHover(): Promise<void> {
+async function refreshHover(
+  target: HoverSessionTarget,
+  hoverSession: ReturnType<typeof createHoverSession>
+): Promise<void> {
   const editor = vscode.window.activeTextEditor;
-  if (
-    !editor ||
-    !lastHoverUri ||
-    !lastHoverPosition ||
-    editor.document.uri.toString() !== lastHoverUri
-  ) {
+  if (!editor || editor.document.uri.toString() !== target.uri) {
     return;
   }
 
-  const position = lastHoverPosition;
   const document = editor.document;
+  const anchor = new vscode.Position(
+    target.anchorLine,
+    target.anchorCharacter
+  );
   let lineLength = 0;
   try {
-    lineLength = document.lineAt(position.line).range.end.character;
+    lineLength = document.lineAt(anchor.line).range.end.character;
   } catch {
     return;
   }
   if (
     !isPositionInDocument(
-      position.line,
-      position.character,
+      anchor.line,
+      anchor.character,
       document.lineCount,
       lineLength
     )
@@ -164,33 +153,26 @@ async function refreshHover(): Promise<void> {
     return;
   }
 
-  const previousSelection = editor.selection;
-  const restoreSelection =
-    !previousSelection.isEmpty &&
-    selectionCoversPosition(previousSelection, position)
-      ? previousSelection
-      : lastHoverSelection &&
-          lastHoverSelection.uri === lastHoverUri &&
-          selectionCoversPosition(lastHoverSelection.range, position)
-        ? lastHoverSelection.range
-        : undefined;
-
+  const range = new vscode.Range(
+    target.range.startLine,
+    target.range.startCharacter,
+    target.range.endLine,
+    target.range.endCharacter
+  );
   const seq = ++hoverRefreshSeq;
+  hoverSession.lockTarget();
   const allowShortcut = getTranslationMode() === "shortcut";
-  refreshingHover = true;
   if (allowShortcut) {
     shortcutTriggered = true;
   }
 
   try {
-    const nudge =
-      position.character > 0
-        ? position.translate(0, -1)
-        : lineLength > position.character
-          ? position.translate(0, 1)
-          : position;
-
-    editor.selection = new vscode.Selection(nudge, nudge);
+    if (target.kind === "selection") {
+      editor.selection = new vscode.Selection(range.end, range.start);
+    } else {
+      editor.selection = new vscode.Selection(anchor, anchor);
+    }
+    editor.revealRange(range, vscode.TextEditorRevealType.Default);
 
     try {
       await vscode.commands.executeCommand("editor.action.hideHover");
@@ -201,38 +183,17 @@ async function refreshHover(): Promise<void> {
     if (seq !== hoverRefreshSeq) {
       return;
     }
-    await sleep(80);
+    await sleep(0);
     if (seq !== hoverRefreshSeq) {
       return;
     }
 
-    if (restoreSelection) {
-      editor.selection = restoreSelection;
-    } else {
-      editor.selection = new vscode.Selection(position, position);
-    }
-    editor.revealRange(
-      new vscode.Range(position, position),
-      vscode.TextEditorRevealType.Default
-    );
-
-    await sleep(100);
-    if (seq !== hoverRefreshSeq) {
-      return;
-    }
-    await vscode.commands.executeCommand("editor.action.showHover", {
-      focus: true,
-    });
-    await sleep(100);
-    if (seq !== hoverRefreshSeq) {
-      return;
-    }
     await vscode.commands.executeCommand("editor.action.showHover", {
       focus: true,
     });
   } finally {
     if (seq === hoverRefreshSeq) {
-      refreshingHover = false;
+      hoverSession.unlockTarget();
       if (allowShortcut) {
         shortcutTriggered = false;
       }
@@ -302,6 +263,8 @@ async function fetchLatestOnlineTranslation(
  * 初始化翻译插件
  */
 export function init(context?: vscode.ExtensionContext): void {
+  const hoverSession = createHoverSession();
+
   // 注册翻译控制命令
   if (context) {
     // 注册启用翻译的命令
@@ -378,46 +341,18 @@ export function init(context?: vscode.ExtensionContext): void {
       )
     );
 
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        TOGGLE_HOVER_EXPANDED_COMMAND,
-        async (
-          uri?: string,
-          line?: number,
-          character?: number,
-          expanded?: boolean
-        ) => {
-          const parsed = parseToggleHoverArgs(uri, line, character, expanded);
-          if (parsed) {
-            lastHoverUri = parsed.uri;
-            try {
-              lastHoverPosition = new vscode.Position(
-                parsed.line,
-                parsed.character
-              );
-            } catch {
-              return;
-            }
-            sessionHover = {
-              uri: parsed.uri,
-              line: parsed.line,
-              character: parsed.character,
-              expanded: parsed.expanded,
-            };
-          } else if (lastHoverUri && lastHoverPosition) {
-            sessionHover = {
-              uri: lastHoverUri,
-              line: lastHoverPosition.line,
-              character: lastHoverPosition.character,
-              expanded: !isHoverExpanded(lastHoverUri, lastHoverPosition),
-            };
-          } else {
-            return;
-          }
+    registerHoverToggleCommand(
+      context,
+      TOGGLE_HOVER_EXPANDED_COMMAND,
+      hoverSession,
+      (expanded) => hoverSession.setDictionaryExpanded(expanded)
+    );
 
-          await refreshHover();
-        }
-      )
+    registerHoverToggleCommand(
+      context,
+      TOGGLE_HOVER_ORIGINAL_TEXT_COMMAND,
+      hoverSession,
+      (expanded) => hoverSession.setOriginalTextExpanded(expanded)
     );
   }
 
@@ -477,64 +412,28 @@ export function init(context?: vscode.ExtensionContext): void {
         editor && editor.document.uri.toString() === document.uri.toString()
           ? editor.selection
           : undefined;
-      const rawSelectText =
-        activeSelection && !activeSelection.isEmpty
-          ? document.getText(activeSelection)
-          : "";
-      const selectText = selectionTextForTranslate(rawSelectText);
-      const usingSelection =
-        !!activeSelection &&
-        !!selectText &&
-        selectionCoversPosition(activeSelection, position);
-
-      const wordRange = document.getWordRangeAtPosition(position);
-      if (!usingSelection && !wordRange) {
+      const query = resolveHoverQuery(document, position, activeSelection);
+      if (!query) {
         return;
       }
 
       const uri = document.uri.toString();
-      const hoverRange = usingSelection
-        ? new vscode.Range(activeSelection!.start, activeSelection!.end)
-        : wordRange!;
-      const hoverPosition = hoverRange.start;
-      if (
-        shouldResetSessionHover(
-          refreshingHover,
-          sessionHover,
-          uri,
-          hoverPosition.line,
-          hoverPosition.character
-        )
-      ) {
-        sessionHover = undefined;
-      }
-      if (!refreshingHover) {
-        lastHoverUri = uri;
-        lastHoverPosition = hoverPosition;
-        lastHoverSelection = usingSelection
-          ? { uri, range: activeSelection! }
-          : undefined;
-      }
+      const sessionTarget: HoverSessionTarget = {
+        uri,
+        kind: query.kind,
+        anchorLine: query.anchor.line,
+        anchorCharacter: query.anchor.character,
+        range: {
+          startLine: query.range.start.line,
+          startCharacter: query.range.start.character,
+          endLine: query.range.end.line,
+          endCharacter: query.range.end.character,
+        },
+      };
+      const hoverState = hoverSession.ensureTarget(sessionTarget);
 
-      let word = usingSelection
-        ? selectText!
-        : document.getText(wordRange!);
-      let isSelectWord = usingSelection;
-
-      // 选区与当前词相交时才用选区，避免字符串误包含
-      if (
-        !usingSelection &&
-        selectText &&
-        activeSelection &&
-        wordRange &&
-        selectionOverlapsRange(activeSelection, wordRange)
-      ) {
-        word = selectText;
-        isSelectWord = true;
-        if (!refreshingHover) {
-          lastHoverSelection = { uri, range: activeSelection };
-        }
-      }
+      const word = query.text;
+      const isSelectWord = query.kind === "selection";
 
       const originText = word.replace(/"/g, "");
 
@@ -546,9 +445,10 @@ export function init(context?: vscode.ExtensionContext): void {
         return;
       }
 
-      const headerText = isChinese
-        ? `中译英 \`${originText}\` :  \n`
-        : MARKDOWN_HEADER.replace("$word", originText);
+      const headerText = buildOriginalTextMarkdown(
+        isChinese ? "中译英" : "翻译",
+        originText
+      );
 
       // 中译英：只执行一次 reverseQuery
       if (isChinese) {
@@ -564,8 +464,8 @@ export function init(context?: vscode.ExtensionContext): void {
             headerText,
             wordsMarkdown,
             uri,
-            hoverPosition,
-            hoverRange
+            query,
+            hoverState
           );
         }
 
@@ -589,8 +489,8 @@ export function init(context?: vscode.ExtensionContext): void {
               headerText,
               onlineMarkdown,
               uri,
-              hoverPosition,
-              hoverRange
+              query,
+              hoverState
             );
           }
         }
@@ -603,8 +503,8 @@ export function init(context?: vscode.ExtensionContext): void {
           headerText,
           emptyMarkdown,
           uri,
-          hoverPosition,
-          hoverRange
+          query,
+          hoverState
         );
       }
 
@@ -621,8 +521,8 @@ export function init(context?: vscode.ExtensionContext): void {
           headerText,
           wordsMarkdown,
           uri,
-          hoverPosition,
-          hoverRange
+          query,
+          hoverState
         );
       }
 
@@ -648,8 +548,8 @@ export function init(context?: vscode.ExtensionContext): void {
             headerText,
             onlineMarkdown,
             uri,
-            hoverPosition,
-            hoverRange
+            query,
+            hoverState
           );
         }
       }
@@ -659,7 +559,7 @@ export function init(context?: vscode.ExtensionContext): void {
         return;
       }
 
-      return toHover(headerText, wordsMarkdown, uri, hoverPosition, hoverRange);
+      return toHover(headerText, wordsMarkdown, uri, query, hoverState);
     },
   });
 

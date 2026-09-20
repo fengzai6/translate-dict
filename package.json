@@ -73,6 +73,11 @@
         "command": "translateDict.toggleHoverExpanded",
         "title": "展开/折叠当前悬浮翻译",
         "category": "Translate Dict"
+      },
+      {
+        "command": "translateDict.toggleHoverOriginalText",
+        "title": "展开/收起当前悬浮翻译原文",
+        "category": "Translate Dict"
       }
     ],
     "keybindings": [
@@ -86,6 +91,10 @@
       "commandPalette": [
         {
           "command": "translateDict.toggleHoverExpanded",
+          "when": "false"
+        },
+        {
+          "command": "translateDict.toggleHoverOriginalText",
           "when": "false"
         }
       ],
@@ -181,11 +190,6 @@
             "快捷键翻译：选中文本后按 Alt+T 触发翻译"
           ],
           "description": "翻译触发模式"
-        },
-        "translateDict.autoExpandHover": {
-          "type": "boolean",
-          "default": true,
-          "description": "词典释义是否默认展开。点击 ▼ / ▶ 只切换当前单词，不会改写本设置"
         },
         "translateDict.enableOnlineFallback": {
           "type": "boolean",

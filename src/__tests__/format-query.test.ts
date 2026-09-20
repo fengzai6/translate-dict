@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { queryWordsForTest } from "../utils/convert";
+import { parseAndQuery } from "../utils/format";
+
+function queryWordsForTest(word: string) {
+  return parseAndQuery(word).map((item) => item.result);
+}
 
 describe("queryWordsForTest", () => {
   it("应该返回单个单词的查询结果", () => {

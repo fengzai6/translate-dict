@@ -46,7 +46,7 @@
 
 ### 1. 悬停翻译 (Hover Translation)
 
-只需将鼠标悬停在单词上，即可查看详细释义、音标及词频等级。信息框顶部有 **▼ 折叠词典** / **▶ 展开词典**。点击只影响当前单词，不会改全局设置。
+只需将鼠标悬停在单词上，即可查看详细释义、音标及词频等级。点击信息框首行可折叠或展开词典；原文本最多显示 3 行，超过后可单独展开或收起。点击只影响当前单词，不会改全局设置。
 ![悬停翻译](assets/Snipaste_01.png)
 
 ### 2. 智能单词拆分 (Smart Word Splitting)
@@ -91,7 +91,6 @@
 | `translateDict.defaultTranslatePlatform`   | String  | `google`                                   | 默认翻译平台，用于单词链接跳转。可选：`google`、`baidu`、`deepl`、`bing`、`yandex`、`custom` |
 | `translateDict.customTranslateUrl`         | String  | `https://fanyi.baidu.com/#en/zh/{word}`    | 自定义翻译平台URL模板，使用 `{word}` 作为单词占位符                                          |
 | `translateDict.translationMode`            | String  | `hover`                                    | 翻译触发模式：`hover`（悬浮即翻译）或 `shortcut`（选中后按 `Alt+T` 触发）                    |
-| `translateDict.autoExpandHover`            | Boolean | `true`                                     | 词典释义默认是否展开。点击 ▶ / ▼ 只切换当前信息框，不会改写本设置                             |
 | `translateDict.enableOnlineFallback`       | Boolean | `false`                                    | 本地词库无结果时，是否自动调用在线 API 回退翻译（需要网络）                                  |
 | `translateDict.onlineFallbackApi`          | String  | `auto`                                     | 在线回退使用的 API：`auto`（Google 优先，失败换 Yandex）、`google`、`yandex`                 |
 

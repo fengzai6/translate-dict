@@ -1,5 +1,25 @@
 import { resolve } from "path";
 import type { DictData, DictEntry } from "./types";
+import { createCache } from "./utils/cache";
+
+const REVERSE_QUERY_CACHE_MAX_ENTRIES = 50;
+
+type ReverseQueryResult = {
+  word: string;
+  translation: string;
+  phonetic?: string;
+};
+
+const reverseQueryCache = createCache<string, ReverseQueryResult[]>({
+  maxEntries: REVERSE_QUERY_CACHE_MAX_ENTRIES,
+});
+
+/**
+ * 清空反向查询缓存
+ */
+export function clearReverseQueryCache(): void {
+  reverseQueryCache.clear();
+}
 
 /**
  * 检测文本是否为纯中文（包含中文且不包含英文单词）
@@ -67,11 +87,17 @@ interface MatchResult {
 export function reverseQuery(
   chineseText: string,
   maxResults: number = 10
-): Array<{ word: string; translation: string; phonetic?: string }> {
+): ReverseQueryResult[] {
   const cleanedText = chineseText.trim();
 
   if (!cleanedText || !containsChinese(cleanedText)) {
     return [];
+  }
+
+  const cacheKey = `${maxResults}\u0000${cleanedText}`;
+  const cached = reverseQueryCache.get(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   const matchResults: MatchResult[] = [];
@@ -122,13 +148,16 @@ export function reverseQuery(
   });
 
   // 返回前 maxResults 个结果，去掉 score 字段
-  return matchResults
+  const results = matchResults
     .slice(0, maxResults)
     .map(({ word, translation, phonetic }) => ({
       word,
       translation,
       phonetic,
     }));
+
+  reverseQueryCache.set(cacheKey, results);
+  return results;
 }
 
 /**

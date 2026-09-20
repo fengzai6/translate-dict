@@ -1,5 +1,6 @@
 import { resolve } from "path";
 import type { DictData, DictResult } from "./types";
+import { Cache, createCache } from "./utils/cache";
 
 /**
  * 生成单词的各种大小写变体
@@ -75,8 +76,8 @@ export function queryDict(word: string): DictResult {
 /**
  * 创建一次查询共享的词典缓存
  */
-export function createQueryCache(): Map<string, DictResult> {
-  return new Map<string, DictResult>();
+export function createQueryCache(): Cache<string, DictResult> {
+  return createCache<string, DictResult>();
 }
 
 /**
@@ -84,10 +85,10 @@ export function createQueryCache(): Map<string, DictResult> {
  */
 export function queryDictWithCache(
   word: string,
-  cache: Map<string, DictResult>
+  cache: Cache<string, DictResult>
 ): DictResult {
   const cached = cache.get(word);
-  if (cached !== undefined || cache.has(word)) {
+  if (cache.has(word)) {
     return cached;
   }
 

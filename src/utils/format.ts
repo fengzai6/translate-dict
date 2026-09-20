@@ -1,7 +1,8 @@
 import { createQueryCache, queryDictWithCache } from "../query";
 import type { DictResult } from "../types";
+import type { Cache } from "./cache";
 
-type QueryCache = Map<string, DictResult>;
+type QueryCache = Cache<string, DictResult>;
 
 function queryWord(word: string, cache: QueryCache): DictResult {
   return queryDictWithCache(word, cache);

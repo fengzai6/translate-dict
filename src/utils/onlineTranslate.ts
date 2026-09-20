@@ -1,3 +1,5 @@
+import { createCache } from "./cache";
+
 export type OnlineTranslateApi = "google" | "yandex";
 export type TranslateDirection = "en-zh" | "zh-en";
 
@@ -15,12 +17,10 @@ const REQUEST_TIMEOUT_MS = 3000;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 100;
 
-interface CacheEntry {
-  result: OnlineTranslateResult;
-  expiresAt: number;
-}
-
-const translationCache = new Map<string, CacheEntry>();
+const translationCache = createCache<string, OnlineTranslateResult>({
+  ttlMs: CACHE_TTL_MS,
+  maxEntries: CACHE_MAX_ENTRIES,
+});
 
 function getCacheKey(
   word: string,
@@ -28,39 +28,6 @@ function getCacheKey(
   direction: TranslateDirection
 ): string {
   return `${direction}\u0000${apis.join(",")}\u0000${word}`;
-}
-
-function getCachedTranslation(key: string): OnlineTranslateResult | null {
-  const entry = translationCache.get(key);
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.expiresAt <= Date.now()) {
-    translationCache.delete(key);
-    return null;
-  }
-
-  translationCache.delete(key);
-  translationCache.set(key, entry);
-  return entry.result;
-}
-
-function cacheTranslation(
-  key: string,
-  result: OnlineTranslateResult
-): void {
-  if (translationCache.size >= CACHE_MAX_ENTRIES) {
-    const oldestKey = translationCache.keys().next().value;
-    if (oldestKey) {
-      translationCache.delete(oldestKey);
-    }
-  }
-
-  translationCache.set(key, {
-    result,
-    expiresAt: Date.now() + CACHE_TTL_MS,
-  });
 }
 
 /**
@@ -143,7 +110,7 @@ export async function fetchOnlineTranslation(
   signal?: AbortSignal
 ): Promise<OnlineTranslateResult | null> {
   const cacheKey = getCacheKey(word, apis, direction);
-  const cached = getCachedTranslation(cacheKey);
+  const cached = translationCache.get(cacheKey);
   if (cached) {
     return cached;
   }
@@ -162,7 +129,7 @@ export async function fetchOnlineTranslation(
       }
       if (translation) {
         const result = { translation, source: api };
-        cacheTranslation(cacheKey, result);
+        translationCache.set(cacheKey, result);
         return result;
       }
     } catch {

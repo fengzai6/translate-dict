@@ -1,7 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { containsChinese, reverseQuery } from "../reverseQuery";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  clearReverseQueryCache,
+  containsChinese,
+  reverseQuery,
+} from "../reverseQuery";
 
 describe("reverseQuery", () => {
+  afterEach(() => {
+    clearReverseQueryCache();
+  });
+
   describe("containsChinese", () => {
     it("应该检测到纯中文字符", () => {
       expect(containsChinese("你好")).toBe(true);
@@ -135,6 +143,22 @@ describe("reverseQuery", () => {
       expect(itemResults.some((r) => r.translation.includes("项目"))).toBe(
         true
       );
+    });
+
+    it("相同查询应该复用缓存结果", () => {
+      const first = reverseQuery("不存在的缓存测试词", 5);
+      const second = reverseQuery("不存在的缓存测试词", 5);
+
+      expect(second).toBe(first);
+    });
+
+    it("不同结果数量不应共享缓存", () => {
+      const fiveResults = reverseQuery("用户", 5);
+      const tenResults = reverseQuery("用户", 10);
+
+      expect(tenResults).not.toBe(fiveResults);
+      expect(fiveResults.length).toBeLessThanOrEqual(5);
+      expect(tenResults.length).toBeLessThanOrEqual(10);
     });
   });
 });

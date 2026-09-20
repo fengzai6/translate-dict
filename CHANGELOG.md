@@ -4,6 +4,15 @@ All notable changes to the "translate-dict" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.6] - 2026-09-20
+
+### 改进
+
+- 提升代码命名拆分覆盖率，支持数字分词边界和带重音的拉丁字母归一化
+- 优化全小写组合词、技术缩写和接口前缀的拆分质量
+- 统一词典与在线翻译缓存，减少重复查询
+- 在线翻译支持请求取消，连续悬停时优先响应当前单词
+
 ## [1.2.5] - 2026-05-27
 
 ### 改进

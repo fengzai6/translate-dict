@@ -88,7 +88,7 @@ export function queryDictWithCache(
   cache: Cache<string, DictResult>
 ): DictResult {
   const cached = cache.get(word);
-  if (cache.has(word)) {
+  if (cached !== undefined || cache.has(word)) {
     return cached;
   }
 

@@ -6,11 +6,11 @@
 
 一款纯粹、极速、无侵入的 VS Code 滑词翻译插件，基于 **ECDICT** 本地词库构建。
 
-[![Version](https://img.shields.io/visual-studio-marketplace/v/fengzai6.translate-dict?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com/items?itemName=fengzai6.translate-dict)
-![Installs](https://img.shields.io/visual-studio-marketplace/i/fengzai6.translate-dict?style=flat-square)
-![Downloads](https://img.shields.io/visual-studio-marketplace/d/fengzai6.translate-dict?style=flat-square)
-![Open VSX Downloads](https://img.shields.io/open-vsx/dt/fengzai6/translate-dict)
-![Rating](https://img.shields.io/visual-studio-marketplace/r/fengzai6.translate-dict?style=flat-square)
+[![Version](https://vsmarketplacebadges.dev/version-short/fengzai6.translate-dict.svg)](https://marketplace.visualstudio.com/items?itemName=fengzai6.translate-dict)
+![Installs](https://vsmarketplacebadges.dev/installs-short/fengzai6.translate-dict.svg)
+![Downloads](https://vsmarketplacebadges.dev/downloads-short/fengzai6.translate-dict.svg)
+![Open VSX Downloads](https://img.shields.io/open-vsx/dt/fengzai6/translate-dict?label=Open%20VSX)
+![Rating](https://vsmarketplacebadges.dev/rating-short/fengzai6.translate-dict.svg)
 ![GitHub Repo stars](https://img.shields.io/github/stars/fengzai6/translate-dict?style=flat-square&logo=github)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 

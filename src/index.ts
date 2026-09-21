@@ -7,6 +7,13 @@ import {
 } from "./hover-session";
 import { containsChinese, reverseQuery } from "./reverseQuery";
 import {
+  getOnlineFallbackApis,
+  getTranslationMode,
+  normalizeExtensionList,
+  normalizeFileExtension,
+  type TranslationMode,
+} from "./utils/config";
+import {
   buildOriginalTextMarkdown,
   convertQueryResultsToMarkdown,
   convertReverseResultsToMarkdown,
@@ -21,16 +28,12 @@ import {
   resolveHoverQuery,
   type HoverQuery,
 } from "./utils/hover-query";
-import {
-  OnlineTranslateApi,
-  OnlineTranslateResult,
-  fetchOnlineTranslation,
-  getApiLabel,
-} from "./utils/onlineTranslate";
+import { getApiLabel } from "./utils/onlineTranslate";
 import {
   generatePlatformLinks,
   getDefaultPlatformUrl,
 } from "./utils/platform";
+import { fetchLatestOnlineTranslation } from "./utils/translation-request";
 
 // 全局翻译开关状态
 let translationEnabled = true;
@@ -38,11 +41,7 @@ let translationEnabled = true;
 // 快捷键触发标志（shortcut 模式下用于控制 hover provider）
 let shortcutTriggered = false;
 
-let activeOnlineTranslation: AbortController | null = null;
-
 let hoverRefreshSeq = 0;
-
-type TranslationMode = "hover" | "shortcut";
 
 function registerHoverToggleCommand(
   context: vscode.ExtensionContext,
@@ -76,14 +75,6 @@ function registerHoverToggleCommand(
       }
     )
   );
-}
-
-/**
- * 读取当前翻译模式配置
- */
-function getTranslationMode(): TranslationMode {
-  const config = vscode.workspace.getConfiguration("translateDict");
-  return config.get<TranslationMode>("translationMode", "hover");
 }
 
 function toHover(
@@ -202,64 +193,6 @@ async function refreshHover(
 }
 
 /**
- * 根据配置获取在线回退 API 列表（按优先级排序）
- */
-function getOnlineFallbackApis(
-  config: vscode.WorkspaceConfiguration
-): OnlineTranslateApi[] {
-  const apiSetting = config.get<string>("onlineFallbackApi", "auto");
-  if (apiSetting === "google") return ["google"];
-  if (apiSetting === "yandex") return ["yandex"];
-  // auto：谷歌优先，失败则 Yandex
-  return ["google", "yandex"];
-}
-
-/**
- * 规范化文件扩展名，统一为小写且不含点号
- */
-function normalizeFileExtension(fileName: string): string {
-  const lastDotIndex = fileName.lastIndexOf(".");
-  if (lastDotIndex === -1) {
-    return "";
-  }
-  return fileName.substring(lastDotIndex + 1).toLowerCase();
-}
-
-/**
- * 将配置中的扩展名列表规范化为小写
- */
-function normalizeExtensionList(extensions: string[]): string[] {
-  return extensions.map((ext) => ext.replace(/^\./, "").toLowerCase());
-}
-
-async function fetchLatestOnlineTranslation(
-  word: string,
-  apis: OnlineTranslateApi[],
-  direction: "en-zh" | "zh-en",
-  token: vscode.CancellationToken
-): Promise<OnlineTranslateResult | null> {
-  activeOnlineTranslation?.abort();
-  const controller = new AbortController();
-  activeOnlineTranslation = controller;
-
-  const abort = (): void => controller.abort();
-  token.onCancellationRequested(abort);
-
-  try {
-    return await fetchOnlineTranslation(
-      word,
-      apis,
-      direction,
-      controller.signal
-    );
-  } finally {
-    if (activeOnlineTranslation === controller) {
-      activeOnlineTranslation = null;
-    }
-  }
-}
-
-/**
  * 初始化翻译插件
  */
 export function init(context?: vscode.ExtensionContext): void {
@@ -292,10 +225,7 @@ export function init(context?: vscode.ExtensionContext): void {
         "translateDict.toggleTranslationMode",
         async () => {
           const config = vscode.workspace.getConfiguration("translateDict");
-          const currentMode = config.get<TranslationMode>(
-            "translationMode",
-            "hover"
-          );
+          const currentMode = getTranslationMode();
           const nextMode: TranslationMode =
             currentMode === "hover" ? "shortcut" : "hover";
 

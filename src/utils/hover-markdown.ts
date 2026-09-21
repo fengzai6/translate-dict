@@ -31,9 +31,26 @@ function buildDictionaryEntryMarkdown(
 本地词库暂无结果${platformLinks ? ` , 查看 ${platformLinks}` : ""}`;
   }
 
+  return buildTranslationEntryMarkdown(word, translation ?? "", phonetic);
+}
+
+function buildTranslationEntryMarkdown(
+  word: string,
+  translation: string,
+  phonetic?: string
+): string {
+  const defaultUrl = getDefaultPlatformUrl(word);
   const phoneticText = phonetic ? `*/${phonetic}/*` : "";
-  return `- [${word}](${defaultUrl}) ${phoneticText}:  
-${translation?.replace(/\\n/g, `  \n`)}`;
+  return `- [${word}](${defaultUrl}) ${phoneticText}:  \n${translation.replace(
+    /\\n/g,
+    `  \n`
+  )}`;
+}
+
+function joinDictionaryEntries(entries: string[]): string {
+  return entries
+    .map((entry, index) => (index === 0 ? entry : MARKDOWN_LINE + entry))
+    .join("");
 }
 
 /**
@@ -46,17 +63,16 @@ export function convertQueryResultsToMarkdown(
     return "";
   }
 
-  return results
-    .map((item, index) => {
+  return joinDictionaryEntries(
+    results.map((item) => {
       const displayWord = item.result?.w ?? item.word;
-      const markdown = buildDictionaryEntryMarkdown(
+      return buildDictionaryEntryMarkdown(
         displayWord,
         item.result?.t,
         item.result?.p
       );
-      return index === 0 ? markdown : MARKDOWN_LINE + markdown;
     })
-    .join("");
+  );
 }
 
 /**
@@ -69,15 +85,15 @@ export function convertReverseResultsToMarkdown(
     return "- 本地词库暂无匹配的英文单词";
   }
 
-  return results
-    .map((item, index) => {
-      const defaultUrl = getDefaultPlatformUrl(item.word);
-      const phoneticText = item.phonetic ? `*/${item.phonetic}/*` : "";
-      const markdown = `- [${item.word}](${defaultUrl}) ${phoneticText}:  
-${item.translation.replace(/\\n/g, `  \n`)}`;
-      return index === 0 ? markdown : MARKDOWN_LINE + markdown;
-    })
-    .join("");
+  return joinDictionaryEntries(
+    results.map((item) =>
+      buildTranslationEntryMarkdown(
+        item.word,
+        item.translation,
+        item.phonetic
+      )
+    )
+  );
 }
 
 export function parseHoverToggleArgs(

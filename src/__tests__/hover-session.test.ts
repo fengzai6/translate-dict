@@ -58,15 +58,19 @@ describe("createHoverSession", () => {
     const session = createHoverSession();
     session.ensureTarget(target(2));
     session.setOriginalTextExpanded(true);
-    session.setDictionaryExpanded(false);
+    expect(session.ensureTarget(target(2))).toEqual({
+      dictionaryExpanded: true,
+      originalTextExpanded: true,
+    });
 
-    expect(session.getState()).toEqual({
+    session.setDictionaryExpanded(false);
+    expect(session.ensureTarget(target(2))).toEqual({
       dictionaryExpanded: false,
       originalTextExpanded: false,
     });
 
     session.setDictionaryExpanded(true);
-    expect(session.getState()).toEqual({
+    expect(session.ensureTarget(target(2))).toEqual({
       dictionaryExpanded: true,
       originalTextExpanded: false,
     });
@@ -78,21 +82,18 @@ describe("createHoverSession", () => {
     session.setDictionaryExpanded(false);
     session.setOriginalTextExpanded(true);
 
-    expect(session.getState()).toEqual({
+    expect(session.ensureTarget(target(2))).toEqual({
       dictionaryExpanded: false,
       originalTextExpanded: false,
     });
   });
 
-  it("可以读取当前目标并重置", () => {
+  it("可以读取当前目标", () => {
     const session = createHoverSession();
     const current = target(2);
     session.ensureTarget(current);
 
     expect(session.getTarget()).toEqual(current);
-    session.reset();
-    expect(session.getTarget()).toBeUndefined();
-    expect(session.getState()).toBeUndefined();
   });
 
   it("锁定目标时忽略刷新产生的临时目标", () => {

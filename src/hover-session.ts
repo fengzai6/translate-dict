@@ -72,10 +72,6 @@ export function createHoverSession() {
         : undefined;
     },
 
-    getState(): HoverSessionState | undefined {
-      return currentState ? { ...currentState } : undefined;
-    },
-
     setDictionaryExpanded(expanded: boolean): void {
       if (!currentState) {
         return;
@@ -103,12 +99,6 @@ export function createHoverSession() {
     },
 
     unlockTarget(): void {
-      targetLocked = false;
-    },
-
-    reset(): void {
-      currentTarget = undefined;
-      currentState = undefined;
       targetLocked = false;
     },
   };

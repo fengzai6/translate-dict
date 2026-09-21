@@ -45,13 +45,8 @@ function main() {
       // Calculate "万" (ten thousands)
       const wanCount = Math.floor(totalWords / 10000);
 
-      // Construct the new string with word count and size
-      // Format: "包含 XX 万+离线单词 (XX MB)"
-      const newString = `包含 ${wanCount} 万+离线单词 (约 ${sizeMB} MB)`;
-
-      // Regex to match the existing pattern, optionally including the size part if it was already added
-      // Matches: "包含 <number> 万+离线单词" OR "包含 <number> 万+离线单词 (约 <number> MB)"
-      const regex = /包含\s*\d+\s*万\+离线单词(\s*\(约\s*[\d\.]+\s*MB\))?/;
+      const newString = `内置 ${wanCount} 万+ 离线单词`;
+      const regex = /内置\s*\d+\s*万\+\s*离线单词/;
 
       if (regex.test(content)) {
         const updatedContent = content.replace(regex, newString);

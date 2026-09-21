@@ -1,11 +1,10 @@
 import * as vscode from "vscode";
-import { MARKDOWN_FOOTER, MARKDOWN_LINE } from "./constants";
+import { MARKDOWN_FOOTER } from "./constants";
+import { buildHoverPresentation } from "./hover-presentation";
 import {
   createHoverSession,
-  type HoverSessionState,
   type HoverSessionTarget,
 } from "./hover-session";
-import { containsChinese, reverseQuery } from "./reverseQuery";
 import {
   getDefaultHoverExpanded,
   getOnlineFallbackApis,
@@ -15,26 +14,12 @@ import {
   type TranslationMode,
 } from "./utils/config";
 import {
-  buildOriginalTextMarkdown,
-  convertQueryResultsToMarkdown,
-  convertReverseResultsToMarkdown,
   isPositionInDocument,
   parseHoverToggleArgs,
   TOGGLE_HOVER_EXPANDED_COMMAND,
   TOGGLE_HOVER_ORIGINAL_TEXT_COMMAND,
-  wrapHoverMarkdown,
 } from "./utils/hover-markdown";
-import { parseAndQuery } from "./utils/format";
-import {
-  resolveHoverQuery,
-  type HoverQuery,
-} from "./utils/hover-query";
-import { getApiLabel } from "./utils/onlineTranslate";
-import {
-  generatePlatformLinks,
-  getDefaultPlatformUrl,
-} from "./utils/platform";
-import { fetchLatestOnlineTranslation } from "./utils/translation-request";
+import { resolveHoverQuery } from "./utils/hover-query";
 
 // 全局翻译开关状态
 let translationEnabled = true;
@@ -76,34 +61,6 @@ function registerHoverToggleCommand(
       }
     )
   );
-}
-
-function toHover(
-  originalTextMarkdown: string,
-  dictionaryMarkdown: string,
-  uri: string,
-  query: HoverQuery,
-  state: HoverSessionState
-): vscode.Hover {
-  const markdown = new vscode.MarkdownString(
-    wrapHoverMarkdown(
-      originalTextMarkdown,
-      dictionaryMarkdown,
-      state,
-      {
-        uri,
-        line: query.anchor.line,
-        character: query.anchor.character,
-      }
-    ) + MARKDOWN_FOOTER
-  );
-  markdown.isTrusted = {
-    enabledCommands: [
-      TOGGLE_HOVER_EXPANDED_COMMAND,
-      TOGGLE_HOVER_ORIGINAL_TEXT_COMMAND,
-    ],
-  };
-  return new vscode.Hover(markdown, query.range);
 }
 
 function sleep(ms: number): Promise<void> {
@@ -367,134 +324,35 @@ export function init(context?: vscode.ExtensionContext): void {
         defaultHoverExpanded
       );
 
-      const word = query.text;
-      const isSelectWord = query.kind === "selection";
-
-      const originText = word.replace(/"/g, "");
-
-      // 根据是否包含中文显示不同的标题
-      const isChinese = containsChinese(originText);
-
-      // 仅翻译 selected 的中文
-      if (isChinese && !isSelectWord) {
+      const presentation = await buildHoverPresentation({
+        query,
+        config: {
+          chineseToEnglishMaxResults,
+          enableOnlineFallback,
+          onlineFallbackApis: getOnlineFallbackApis(config),
+        },
+        state: hoverState,
+        commandTarget: {
+          uri,
+          line: query.anchor.line,
+          character: query.anchor.character,
+        },
+        token,
+      });
+      if (!presentation) {
         return;
       }
 
-      const headerText = buildOriginalTextMarkdown(
-        isChinese ? "中译英" : "翻译",
-        originText
+      const markdown = new vscode.MarkdownString(
+        presentation.markdown + MARKDOWN_FOOTER
       );
-
-      // 中译英：只执行一次 reverseQuery
-      if (isChinese) {
-        const reverseResults = reverseQuery(
-          originText,
-          chineseToEnglishMaxResults
-        );
-
-        if (reverseResults.length > 0) {
-          const wordsMarkdown =
-            convertReverseResultsToMarkdown(reverseResults);
-          return toHover(
-            headerText,
-            wordsMarkdown,
-            uri,
-            query,
-            hoverState
-          );
-        }
-
-        if (enableOnlineFallback) {
-          const apis = getOnlineFallbackApis(config);
-          const online = await fetchLatestOnlineTranslation(
-            originText,
-            apis,
-            "zh-en",
-            token
-          );
-          if (token.isCancellationRequested) {
-            return;
-          }
-          if (online) {
-            const onlineMarkdown =
-              `- ${online.translation}` +
-              MARKDOWN_LINE +
-              `*${getApiLabel(online.source)}*`;
-            return toHover(
-              headerText,
-              onlineMarkdown,
-              uri,
-              query,
-              hoverState
-            );
-          }
-        }
-
-        const platformLinks = generatePlatformLinks(originText);
-        const emptyMarkdown = `- 本地词库暂无匹配的英文单词${
-          platformLinks ? ` , 查看 ${platformLinks}` : ""
-        }`;
-        return toHover(
-          headerText,
-          emptyMarkdown,
-          uri,
-          query,
-          hoverState
-        );
-      }
-
-      // 英译中：只执行一次 parseAndQuery
-      const queryResults = parseAndQuery(word);
-      const hasLocalResult = queryResults.some((r) => r.result !== undefined);
-
-      if (hasLocalResult) {
-        const wordsMarkdown = convertQueryResultsToMarkdown(queryResults);
-        if (!wordsMarkdown) {
-          return;
-        }
-        return toHover(
-          headerText,
-          wordsMarkdown,
-          uri,
-          query,
-          hoverState
-        );
-      }
-
-      if (enableOnlineFallback) {
-        const apis = getOnlineFallbackApis(config);
-        const online = await fetchLatestOnlineTranslation(
-          originText,
-          apis,
-          "en-zh",
-          token
-        );
-        if (token.isCancellationRequested) {
-          return;
-        }
-        if (online) {
-          const defaultUrl = getDefaultPlatformUrl(originText);
-          const onlineMarkdown =
-            `- [${originText}](${defaultUrl}) :  \n` +
-            `${online.translation}` +
-            MARKDOWN_LINE +
-            `*${getApiLabel(online.source)}*`;
-          return toHover(
-            headerText,
-            onlineMarkdown,
-            uri,
-            query,
-            hoverState
-          );
-        }
-      }
-
-      const wordsMarkdown = convertQueryResultsToMarkdown(queryResults);
-      if (!wordsMarkdown) {
-        return;
-      }
-
-      return toHover(headerText, wordsMarkdown, uri, query, hoverState);
+      markdown.isTrusted = {
+        enabledCommands: [
+          TOGGLE_HOVER_EXPANDED_COMMAND,
+          TOGGLE_HOVER_ORIGINAL_TEXT_COMMAND,
+        ],
+      };
+      return new vscode.Hover(markdown, query.range);
     },
   });
 

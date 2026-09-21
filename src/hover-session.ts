@@ -50,7 +50,10 @@ export function createHoverSession() {
   let targetLocked = false;
 
   return {
-    ensureTarget(target: HoverSessionTarget): HoverSessionState {
+    ensureTarget(
+      target: HoverSessionTarget,
+      dictionaryExpanded = true
+    ): HoverSessionState {
       if (targetLocked && currentState) {
         return { ...currentState };
       }
@@ -60,7 +63,7 @@ export function createHoverSession() {
 
       currentTarget = { ...target, range: { ...target.range } };
       currentState = {
-        dictionaryExpanded: true,
+        dictionaryExpanded,
         originalTextExpanded: false,
       };
       return { ...currentState };

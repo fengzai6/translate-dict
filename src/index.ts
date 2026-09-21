@@ -7,6 +7,7 @@ import {
 } from "./hover-session";
 import { containsChinese, reverseQuery } from "./reverseQuery";
 import {
+  getDefaultHoverExpanded,
   getOnlineFallbackApis,
   getTranslationMode,
   normalizeExtensionList,
@@ -319,6 +320,7 @@ export function init(context?: vscode.ExtensionContext): void {
         "enableOnlineFallback",
         false
       );
+      const defaultHoverExpanded = getDefaultHoverExpanded(config);
 
       // 获取当前文件的扩展名（不含点号，统一小写）
       const fileExtension = normalizeFileExtension(document.fileName);
@@ -360,7 +362,10 @@ export function init(context?: vscode.ExtensionContext): void {
           endCharacter: query.range.end.character,
         },
       };
-      const hoverState = hoverSession.ensureTarget(sessionTarget);
+      const hoverState = hoverSession.ensureTarget(
+        sessionTarget,
+        defaultHoverExpanded
+      );
 
       const word = query.text;
       const isSelectWord = query.kind === "selection";

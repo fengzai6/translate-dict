@@ -191,6 +191,11 @@
           ],
           "description": "翻译触发模式"
         },
+        "translateDict.defaultHoverExpanded": {
+          "type": "boolean",
+          "default": true,
+          "description": "新悬浮翻译是否默认展开词典正文。点击 ▼ / ▶ 只切换当前悬浮目标，不会改写本设置"
+        },
         "translateDict.enableOnlineFallback": {
           "type": "boolean",
           "default": false,

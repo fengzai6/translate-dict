@@ -91,6 +91,7 @@
 | `translateDict.defaultTranslatePlatform`   | String  | `google`                                   | 默认翻译平台，用于单词链接跳转。可选：`google`、`baidu`、`deepl`、`bing`、`yandex`、`custom` |
 | `translateDict.customTranslateUrl`         | String  | `https://fanyi.baidu.com/#en/zh/{word}`    | 自定义翻译平台URL模板，使用 `{word}` 作为单词占位符                                          |
 | `translateDict.translationMode`            | String  | `hover`                                    | 翻译触发模式：`hover`（悬浮即翻译）或 `shortcut`（选中后按 `Alt+T` 触发）                    |
+| `translateDict.defaultHoverExpanded`       | Boolean | `true`                                     | 新悬浮翻译是否默认展开词典正文；点击展开/折叠只影响当前悬浮目标                               |
 | `translateDict.enableOnlineFallback`       | Boolean | `false`                                    | 本地词库无结果时，是否自动调用在线 API 回退翻译（需要网络）                                  |
 | `translateDict.onlineFallbackApi`          | String  | `auto`                                     | 在线回退使用的 API：`auto`（Google 优先，失败换 Yandex）、`google`、`yandex`                 |
 

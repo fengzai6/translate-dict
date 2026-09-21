@@ -32,6 +32,15 @@ describe("createHoverSession", () => {
     });
   });
 
+  it("新目标可使用传入的默认折叠状态初始化", () => {
+    const session = createHoverSession();
+
+    expect(session.ensureTarget(target(2), false)).toEqual({
+      dictionaryExpanded: false,
+      originalTextExpanded: false,
+    });
+  });
+
   it("同一目标刷新时保留状态", () => {
     const session = createHoverSession();
     session.ensureTarget(target(2));

@@ -12,6 +12,15 @@ export function getTranslationMode(): TranslationMode {
 }
 
 /**
+ * 读取新 hover 默认展开状态
+ */
+export function getDefaultHoverExpanded(
+  config: vscode.WorkspaceConfiguration
+): boolean {
+  return config.get<boolean>("defaultHoverExpanded", true);
+}
+
+/**
  * 根据配置获取在线回退 API 列表（按优先级排序）
  */
 export function getOnlineFallbackApis(

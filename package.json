@@ -68,6 +68,16 @@
         "command": "translateDict.translateSelection",
         "title": "翻译选中文本",
         "category": "Translate Dict"
+      },
+      {
+        "command": "translateDict.toggleHoverExpanded",
+        "title": "展开/折叠当前悬浮翻译",
+        "category": "Translate Dict"
+      },
+      {
+        "command": "translateDict.toggleHoverOriginalText",
+        "title": "展开/收起当前悬浮翻译原文",
+        "category": "Translate Dict"
       }
     ],
     "keybindings": [
@@ -78,6 +88,16 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "translateDict.toggleHoverExpanded",
+          "when": "false"
+        },
+        {
+          "command": "translateDict.toggleHoverOriginalText",
+          "when": "false"
+        }
+      ],
       "editor/context": [
         {
           "submenu": "translateDict.submenu",
@@ -170,6 +190,11 @@
             "快捷键翻译：选中文本后按 Alt+T 触发翻译"
           ],
           "description": "翻译触发模式"
+        },
+        "translateDict.defaultHoverExpanded": {
+          "type": "boolean",
+          "default": true,
+          "description": "新悬浮翻译是否默认展开词典正文。点击 ▼ / ▶ 只切换当前悬浮目标，不会改写本设置"
         },
         "translateDict.enableOnlineFallback": {
           "type": "boolean",

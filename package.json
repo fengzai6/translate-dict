@@ -15,7 +15,7 @@
     "本地词典",
     "翻译"
   ],
-  "version": "1.2.6",
+  "version": "1.2.7",
   "publisher": "fengzai6",
   "scripts": {
     "dev": "rollup -c -w",

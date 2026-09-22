@@ -40,7 +40,7 @@ function buildTranslationEntryMarkdown(
   phonetic?: string
 ): string {
   const defaultUrl = getDefaultPlatformUrl(word);
-  const phoneticText = phonetic ? `*/${phonetic}/*` : "";
+  const phoneticText = phonetic ? `/${phonetic}/` : "";
   return `- [${word}](${defaultUrl}) ${phoneticText}:  \n${translation.replace(
     /\\n/g,
     `  \n`

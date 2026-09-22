@@ -4,6 +4,12 @@ All notable changes to the "translate-dict" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.2.7] - 2026-09-22
+
+### 修复
+
+- 修复悬浮翻译音标中部分 IPA 字符因斜体字体缺字而不可见的问题
+
 ## [1.2.6] - 2026-09-20
 
 ### 改进

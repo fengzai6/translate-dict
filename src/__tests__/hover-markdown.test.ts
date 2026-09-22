@@ -81,7 +81,7 @@ describe("dictionary markdown", () => {
     ]);
 
     expect(result).toBe(
-      "- [demise](https://translate.google.com?text=demise) */di'maiz/*:  \n" +
+      "- [demise](https://translate.google.com?text=demise) /di'maiz/:  \n" +
         "n. 崩, 薨, 死亡  \n[法] 让与"
     );
   });
@@ -134,7 +134,7 @@ describe("dictionary markdown", () => {
       "[hello world](https://translate.google.com?text=hello%20world)"
     );
     expect(result).toContain(
-      "*****\n- [world](https://translate.google.com?text=world) */wә:ld/*"
+      "*****\n- [world](https://translate.google.com?text=world) /wә:ld/"
     );
   });
 });
